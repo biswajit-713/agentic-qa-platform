@@ -15,7 +15,7 @@ dependencies = [
     { name = "pyyaml" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "playwright" },
     { name = "pytest" },
@@ -25,14 +25,17 @@ dev = [
 requires-dist = [
     { name = "anthropic" },
     { name = "httpx" },
-    { name = "playwright", marker = "extra == 'dev'" },
     { name = "pydantic" },
     { name = "pydantic-settings", specifier = ">=2.14.0" },
-    { name = "pytest", marker = "extra == 'dev'" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
 ]
-provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "playwright" },
+    { name = "pytest" },
+]
 
 [[package]]
 name = "annotated-types"

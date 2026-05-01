@@ -2,9 +2,10 @@
 
 ## daily workflow
 ```
-/plan x
-/implement x
-
+plan day 5
+implement day 5
+show status
+update status: day 2 complete
 ```
 
 ## environment setup

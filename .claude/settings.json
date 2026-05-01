@@ -1,24 +1,2 @@
-{
-  "customSkills": [
-    {
-      "name": "plan",
-      "path": ".claude/skills/plan.md",
-      "priority": 10
-    },
-    {
-      "name": "implement",
-      "path": ".claude/skills/implement.md",
-      "priority": 10
-    },
-    {
-      "name": "status",
-      "path": ".claude/skills/status.md",
-      "priority": 10
-    },
-    {
-      "name": "update-status",
-      "path": ".claude/skills/update-status.md",
-      "priority": 10
-    }
-  ]
-}
+{}
+

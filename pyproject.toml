@@ -1,0 +1,25 @@
+[project]
+name = "agentic-qa-platform"
+version = "0.1.0"
+description = "AI-driven QA platform that autonomously generates, executes, and self-heals tests for Saleor"
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "anthropic",
+    "pydantic",
+    "pyyaml",
+    "httpx",
+    "python-dotenv"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "playwright"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]

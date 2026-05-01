@@ -26,4 +26,3 @@ for Saleor (Python/Django e-commerce). Portfolio project for Agentic QA Architec
 
 ## Built So Far
 Nothing yet — Day 1 in progress.
-

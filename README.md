@@ -7,3 +7,10 @@ uv sync --python 3.12
 uv python pin 3.12
 
 ```
+
+## daily workflow
+```
+/plan x
+/implement x
+
+```

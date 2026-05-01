@@ -17,7 +17,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import httpx
-import anthropic
 from src.config.settings import get_settings
 
 
@@ -59,26 +58,38 @@ def check_saleor_graphql(graphql_url: str) -> bool:
         return False
 
 
-def check_anthropic_api(api_key: str) -> bool:
-    """Make a minimal Claude API call to verify the key is valid and reachable."""
-    logger = logging.getLogger("health_check.anthropic")
+def check_openrouter_api(base_url: str, api_key: str) -> bool:
+    """Make a minimal OpenRouter API call to verify the key is valid and reachable."""
+    logger = logging.getLogger("health_check.openrouter")
     try:
-        client = anthropic.Anthropic(api_key=api_key)
-        message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=10,
-            messages=[{"role": "user", "content": "Reply with OK"}],
+        response = httpx.post(
+            f"{base_url}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "openai/gpt-oss-120b:free",
+                "messages": [{"role": "user", "content": "Reply with OK"}],
+                "max_tokens": 10,
+            },
+            timeout=10.0,
         )
-        logger.info("Anthropic API OK — stop_reason: %s", message.stop_reason)
+        response.raise_for_status()
+        data = response.json()
+        logger.info("OpenRouter API OK — model: %s", data.get("model"))
         return True
-    except anthropic.AuthenticationError:
-        logger.error("Anthropic API key is invalid or expired")
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            logger.error("OpenRouter API key is invalid or expired")
+        else:
+            logger.error("OpenRouter API error: %s", exc)
         return False
-    except anthropic.APIConnectionError as exc:
-        logger.error("Cannot reach Anthropic API: %s", exc)
+    except httpx.ConnectError:
+        logger.error("Cannot reach OpenRouter API at %s", base_url)
         return False
     except Exception as exc:
-        logger.error("Unexpected error checking Anthropic API: %s", exc)
+        logger.error("Unexpected error checking OpenRouter API: %s", exc)
         return False
 
 
@@ -95,8 +106,10 @@ def main() -> int:
     logger.info("Check 1/2: Saleor GraphQL endpoint")
     results["saleor_graphql"] = check_saleor_graphql(str(settings.saleor_graphql_url))
 
-    logger.info("Check 2/2: Anthropic API connectivity")
-    results["anthropic_api"] = check_anthropic_api(settings.anthropic_api_key)
+    logger.info("Check 2/2: OpenRouter API connectivity")
+    results["openrouter_api"] = check_openrouter_api(
+        settings.openrouter_base_url, settings.openrouter_api_key
+    )
 
     logger.info("--- Results ---")
     all_passed = True

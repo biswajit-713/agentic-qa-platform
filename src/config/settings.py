@@ -19,8 +19,12 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Anthropic
-    anthropic_api_key: str = Field(..., description="Anthropic API key for Claude")
+    # OpenRouter
+    openrouter_api_key: str = Field(..., description="OpenRouter API key")
+    openrouter_base_url: str = Field(
+        default="https://openrouter.io/api/v1",
+        description="OpenRouter API base URL",
+    )
 
     # Saleor
     saleor_url: AnyHttpUrl = Field(

@@ -40,6 +40,7 @@ def check_saleor_graphql(graphql_url: str) -> bool:
             timeout=10.0,
             headers={"Content-Type": "application/json"},
         )
+        logger.info(response.json())
         response.raise_for_status()
         data = response.json()
         shop_name = data.get("data", {}).get("shop", {}).get("name")

@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # OpenRouter
     openrouter_api_key: str = Field(..., description="OpenRouter API key")
     openrouter_base_url: str = Field(
-        default="https://openrouter.io/api/v1",
+        default="https://openrouter.ai/api/v1",
         description="OpenRouter API base URL",
     )
 

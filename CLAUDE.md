@@ -25,4 +25,4 @@ for Saleor (Python/Django e-commerce). Portfolio project for Agentic QA Architec
 - src/agent/: orchestrate only, no business logic
 
 ## Built So Far
-Nothing yet — Day 1 in progress.
+- Day 1: docker-compose.yml (Saleor + PostgreSQL + Redis), src/config/settings.py (pydantic-settings configuration), scripts/health_check.py (GraphQL + Anthropic API health check), .env.example template

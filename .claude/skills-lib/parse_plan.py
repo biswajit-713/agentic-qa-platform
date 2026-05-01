@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Parse daily plans from agentic-qa-platform-plan.md.
-Usage: python scripts/parse_plan.py <day_number>
+Usage: python .claude/skills-lib/parse_plan.py <day_number>
 """
 
 import re
@@ -77,7 +77,7 @@ def format_day_plan(day_content: dict) -> str:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python scripts/parse_plan.py <day_number>")
+        print("Usage: python .claude/skills-lib/parse_plan.py <day_number>")
         sys.exit(1)
 
     try:
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         print(f"Error: {sys.argv[1]} is not a valid day number.")
         sys.exit(1)
 
-    plan_path = Path(__file__).parent.parent / "agentic-qa-platform-plan.md"
+    plan_path = Path(__file__).parent.parent.parent / "agentic-qa-platform-plan.md"
 
     if not plan_path.exists():
         print(f"Error: Plan file not found at {plan_path}")

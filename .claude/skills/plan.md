@@ -29,5 +29,5 @@ For each day:
 - **Claude Code Prompt** — The exact prompt to use in your next Claude Code session
 
 ```sh
-python scripts/parse_plan.py $1
+python .claude/skills-lib/parse_plan.py $1
 ```

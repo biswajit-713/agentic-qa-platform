@@ -31,7 +31,7 @@ This skill extracts and executes the Claude Code prompt for a specific day's imp
 ## Command
 
 ```sh
-python scripts/get_day_prompt.py $1
+python .claude/skills-lib/get_day_prompt.py $1
 ```
 
 This extracts the Claude Code prompt for the specified day and submits it for implementation.

@@ -5,7 +5,6 @@ Generates pytest test cases for Saleor GraphQL operations using OpenRouter's LLM
 Produces executable test code that uses httpx to call Saleor's GraphQL endpoint.
 """
 
-import json
 import logging
 from pathlib import Path
 from typing import Optional
@@ -41,21 +40,18 @@ class TestCase(BaseModel):
 class ApiTestGenerator:
     """Generates pytest test cases from GraphQL operations using OpenRouter."""
 
-    SYSTEM_PROMPT = """You are an expert pytest test engineer. Your task is to generate comprehensive,
-realistic test cases for Saleor GraphQL operations.
+    SYSTEM_PROMPT = """You are an expert pytest test engineer generating test cases for Saleor GraphQL operations.
 
-IMPORTANT:
-1. Generate realistic test data — no placeholders, no TODO/FIXME comments
-2. Each test must be self-contained and executable
-3. Use httpx for HTTP calls, os.getenv() for environment variables
-4. Target SALEOR_GRAPHQL_URL environment variable (default: http://localhost:8000/graphql/)
-5. Include proper error handling (status code checks, response parsing)
-6. Add meaningful assertions beyond just checking for errors
-7. Generate valid GraphQL syntax
-8. Never hardcode URLs or sensitive data
+Rules:
+1. Use httpx for HTTP calls, os.getenv() for environment variables
+2. Read SALEOR_GRAPHQL_URL from environment (default: http://localhost:8000/graphql/)
+3. Include proper error handling: check status codes, parse responses
+4. Add meaningful assertions beyond just "errors" not in response
+5. Generate realistic test data — no placeholders or TODO/FIXME comments
+6. Each test is self-contained and executable
+7. Generate valid GraphQL syntax, never hardcode URLs or sensitive data
 
-The test_code field must be a complete, ready-to-run pytest function that can be saved directly to a .py file.
-Include all necessary imports at the top of the function or as module-level imports."""
+Output test_code as a complete, ready-to-run pytest function with all imports included."""
 
     def __init__(
         self,
@@ -96,7 +92,7 @@ Include all necessary imports at the top of the function or as module-level impo
                     {"role": "user", "content": user_prompt},
                 ],
                 response_format=TestCase,
-                temperature=0.7,
+                temperature=0.2,
             )
 
             test_case = response.choices[0].message.parsed
@@ -153,10 +149,10 @@ Include all necessary imports at the top of the function or as module-level impo
             for arg in optional_args:
                 args_description += f"- {arg.name} ({arg.type_name}): {arg.description or 'N/A'}\n"
 
-        return f"""Generate a comprehensive pytest test case for the following Saleor GraphQL operation:
+        return f"""Generate a pytest test case for the following Saleor GraphQL operation:
 
 **Operation Name**: {operation.name}
-**Type**: {operation.type_} (query or mutation)
+**Type**: {operation.type_}
 **Return Type**: {operation.return_type}
 **Description**: {operation.description or "No description provided"}
 
@@ -164,11 +160,4 @@ Include all necessary imports at the top of the function or as module-level impo
 
 **Target GraphQL Endpoint**: {self.graphql_url}
 
-Generate a test that:
-1. Constructs a realistic GraphQL {operation.type_} with appropriate variables
-2. Calls the endpoint using httpx.post()
-3. Verifies the response status and structure
-4. Makes operation-specific assertions about the returned data
-5. Handles both success and potential error cases appropriately
-
-The test_code must be complete and executable, with all necessary imports included."""
+Create a test that calls this operation with realistic variables and verifies the response."""

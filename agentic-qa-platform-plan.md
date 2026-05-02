@@ -70,10 +70,7 @@ for Saleor (Python/Django e-commerce). Portfolio project for Agentic QA Architec
 
 ## Stack
 - Python 3.12, Pydantic v2, pytest, Playwright, httpx
-- LLM API: OpenRouter
-   - Generation model: openai/gpt-oss-120b:free
-   - Reasoning model: openai/gpt-oss-120b:free with high-reasoning prompt mode
-   - Fallback reasoning model: anthropic/claude-sonnet-4.6 when paid fallback is enabled
+- LLM API: OpenRouter (see [LLM_MODELS.md](LLM_MODELS.md))
 - Saleor GraphQL at localhost:8000/graphql/
 - Saleor storefront at localhost:3000
 - Jenkins at localhost:8080
@@ -100,7 +97,7 @@ EOF
 
 # 4. Install dependencies (can be done in Claude Code session or manually)
 python -m venv .venv && source .venv/bin/activate
-pip install anthropic pytest playwright pydantic pyyaml httpx python-dotenv
+pip install httpx pytest playwright pydantic pyyaml python-dotenv openai
 ```
 
 > **Rule**: Update the "Built So Far" section in `CLAUDE.md` at the end of every day.
@@ -116,7 +113,7 @@ pip install anthropic pytest playwright pydantic pyyaml httpx python-dotenv
 │                                                         │
 │  ┌─────────────┐   ┌────────────────┐   ┌────────────┐ │
 │  │  Schema &   │   │  Test Agent    │   │  Quality   │ │
-│  │  Code       │──▶│  (Claude +     │──▶│  Gate      │ │
+│  │  Code       │──▶│  (Agent +      │──▶│  Gate      │ │
 │  │  Analyzer   │   │  Tool Use)     │   │  Engine    │ │
 │  └─────────────┘   └───────┬────────┘   └─────┬──────┘ │
 │                            │                   │        │
@@ -158,14 +155,14 @@ pip install anthropic pytest playwright pydantic pyyaml httpx python-dotenv
 
 #### Day 1 — Environment & Repo Setup
 
-**Outcome**: Saleor running on `localhost:8000`, repo scaffolded, Claude SDK connected.
+**Outcome**: Saleor running on `localhost:8000`, repo scaffolded, OpenRouter API connected.
 
 **Tasks**:
 - [ ] Create GitHub repo `agentic-qa-platform`, clone locally
 - [ ] Create `CLAUDE.md` manually — **before opening Claude Code** (see Section 1 setup)
 - [ ] Open Claude Code — now CLAUDE.md is loaded automatically into the session
 - [ ] Use the Day 1 Claude Code prompt below to scaffold the project structure
-- [ ] Create `.env` with `ANTHROPIC_API_KEY`, `SALEOR_URL`
+- [ ] Create `.env` with `OPENROUTER_API_KEY`, `SALEOR_URL`
 - [ ] Start Saleor with Docker Compose (`docker compose up`)
 - [ ] Verify Saleor GraphQL playground at `localhost:8000/graphql/`
 - [ ] Update "Built So Far" in `CLAUDE.md` before closing the session
@@ -181,7 +178,7 @@ I am building a production-grade agentic QA platform. Today I need to:
 4. Verify the setup with a simple health check script
 
 Use Python 3.12, pydantic v2, and the official Saleor docker-compose as reference.
-The .env should contain: ANTHROPIC_API_KEY, SALEOR_URL, SALEOR_GRAPHQL_URL
+The .env should contain: OPENROUTER_API_KEY, SALEOR_URL, SALEOR_GRAPHQL_URL
 ```
 
 ---
@@ -219,11 +216,11 @@ Keep the models minimal — only extract what's needed for test generation later
 
 #### Day 3 — LLM Refresher + Test Generator v1
 
-**Outcome**: Claude generates structured pytest test cases from a schema fragment using structured output.
+**Outcome**: OpenRouter generates structured pytest test cases from a schema fragment using structured output.
 
 **Tasks**:
 - [ ] Build `src/generators/api_test_generator.py`
-- [ ] Prompt Claude with a GraphQL operation + schema → get back a `TestCase` Pydantic model
+- [ ] Prompt OpenRouter with a GraphQL operation + schema → get back a `TestCase` Pydantic model
 - [ ] `TestCase` contains: test name, setup steps, GraphQL query/mutation body, assertions
 - [ ] Write generated test to a `.py` file in `generated_tests/api/`
 - [ ] Verify 3 generated tests run against live Saleor
@@ -234,7 +231,7 @@ Keep the models minimal — only extract what's needed for test generation later
 I need to build src/generators/api_test_generator.py.
 
 This module takes a GraphQLOperation object (from the schema analyzer) and uses the
-Anthropic Claude API (claude-haiku-4-5 model for cost efficiency) to generate a pytest
+OpenRouter API (openai/gpt-oss-120b:free model for cost efficiency) to generate a pytest
 test case.
 
 Requirements:
@@ -246,21 +243,21 @@ Requirements:
    - assertions: list[str]  (what to assert on the response)
    - test_code: str     (complete executable pytest function as a string)
 
-2. The prompt to Claude should include the operation schema, Saleor's base URL,
+2. The prompt to OpenRouter should include the operation schema, Saleor's base URL,
    and instructions to generate realistic test data (not placeholder values)
 
 3. Write the test_code to generated_tests/api/{test_name}.py
 
 4. The generated test should use httpx to call Saleor's GraphQL endpoint directly
 
-Show me the full implementation including the Claude API call with proper error handling.
+Show me the full implementation including the OpenRouter API call with proper error handling.
 ```
 
 ---
 
 #### Day 4 — Test Generator v2: Tool Use
 
-**Outcome**: Generator uses Claude tool use to introspect schema dynamically during generation.
+**Outcome**: Generator uses OpenRouter tool use to introspect schema dynamically during generation.
 
 **Tasks**:
 - [ ] Add tool definitions to the generator: `introspect_schema`, `get_related_type`, `check_existing_tests`
@@ -270,17 +267,17 @@ Show me the full implementation including the Claude API call with proper error 
 
 **Claude Code prompt for Day 4**:
 ```
-I need to upgrade src/generators/api_test_generator.py to use Claude tool use
+I need to upgrade src/generators/api_test_generator.py to use OpenRouter tool use
 (function calling).
 
 Current state: the generator sends a single prompt and gets back a TestCase.
 Problem: complex mutations have nested types that don't fit in one prompt.
 
-Add these tools that Claude can call during generation:
+Add these tools that OpenRouter can call during generation:
 1. introspect_type(type_name: str) → returns the full type definition from the schema
 2. list_existing_tests(operation_name: str) → returns names of already-generated tests
 3. get_example_response(operation_name: str) → makes a real call to Saleor and returns
-   the actual response structure for Claude to learn from
+   the actual response structure for OpenRouter to learn from
 
 Implement the tool-use loop: send message → if tool_use in response → execute tool →
 send result back → continue until final response.
@@ -418,11 +415,11 @@ Use Pydantic v2 for all models. Include unit tests with sample diff fixtures.
 
 #### Day 9 — Risk Scorer
 
-**Outcome**: Agent uses Claude to assess risk level of each code change and prioritize testing.
+**Outcome**: Agent uses OpenRouter to assess risk level of each code change and prioritize testing.
 
 **Tasks**:
 - [ ] Build `src/analyzers/risk_scorer.py`
-- [ ] Claude analyzes the diff + affected operations → assigns risk score + rationale
+- [ ] OpenRouter analyzes the diff + affected operations → assigns risk score + rationale
 - [ ] Risk levels: CRITICAL, HIGH, MEDIUM, LOW with explanations
 - [ ] Output informs which tests to generate first
 - [ ] Commit: "feat: LLM-powered risk scorer"
@@ -433,7 +430,7 @@ I need to build src/analyzers/risk_scorer.py.
 
 Input: a DiffAnalysis object (from diff_analyzer.py) and the list of affected GraphQL operations.
 
-This module sends the diff summary and affected operations to Claude (claude-haiku-4-5)
+This module sends the diff summary and affected operations to OpenRouter (openai/gpt-oss-120b:free)
 and gets back a structured risk assessment.
 
 Output — RiskAssessment Pydantic model:
@@ -443,7 +440,7 @@ Output — RiskAssessment Pydantic model:
   where OperationRisk = operation_name, risk_level, reason, suggested_test_focus: list[str]
 - recommended_test_count: int  (how many tests to generate for this change)
 
-The Claude prompt should explain what each risk level means in context of an e-commerce
+The OpenRouter prompt should explain what each risk level means in context of an e-commerce
 system (CRITICAL = payment/auth flows, HIGH = cart/checkout, etc.) so it can make
 appropriate judgements.
 ```
@@ -481,6 +478,7 @@ Make the agent runnable as: python -m agent run --diff HEAD~3..HEAD
 
 Use typer for the CLI. Keep the orchestration logic clean — each step should be
 a separate function call, no nested business logic in the loop itself.
+Use OpenRouter API for all LLM calls (generation and reasoning).
 ```
 
 ---
@@ -491,7 +489,7 @@ a separate function call, no nested business logic in the loop itself.
 
 **Tasks**:
 - [ ] Build `src/generators/ui_test_generator.py`
-- [ ] Claude generates Playwright test code for flows: search, add-to-cart, checkout start
+- [ ] OpenRouter generates Playwright test code for flows: search, add-to-cart, checkout start
 - [ ] Generated tests land in `generated_tests/ui/`
 - [ ] Tests run headless against Saleor storefront
 - [ ] Commit: "feat: Playwright UI test generator"
@@ -505,7 +503,7 @@ running at localhost:3000.
 
 The generator should:
 1. Accept a flow_name: str describing the user flow (e.g. "search and add product to cart")
-2. Use Claude to generate a complete Playwright test in async Python
+2. Use OpenRouter to generate a complete Playwright test in async Python
 3. The generated test should use page fixtures, have clear step comments, and include
    realistic assertions (element visible, text content, URL changes)
 4. Write output to generated_tests/ui/test_{flow_name}.py
@@ -515,7 +513,7 @@ Start with these 3 flows:
 - "add a product to cart and verify cart count"
 - "navigate through checkout steps to payment page"
 
-The Claude prompt should include the Saleor storefront URL and note it is a
+The OpenRouter prompt should include the Saleor storefront URL and note it is a
 React/Next.js app with standard e-commerce UI patterns.
 ```
 
@@ -543,7 +541,7 @@ on the storefront product listing page via Playwright."
 
 The generator should:
 1. Accept a scenario_description: str
-2. Use Claude to generate a pytest test that:
+2. Use OpenRouter to generate a pytest test that:
    - Uses httpx for GraphQL API calls (with auth token from env)
    - Uses Playwright for UI steps
    - Has clear setup/action/assertion phases
@@ -617,7 +615,7 @@ The JSON schema should be documented with field descriptions for README referenc
 **Tasks**:
 - [ ] Build `src/healers/failure_classifier.py`
 - [ ] Input: failed test + error message + test code + recent diff
-- [ ] Claude classifies: APP_BUG | TEST_STALE | ENVIRONMENT | FLAKY | UNKNOWN
+- [ ] OpenRouter classifies: APP_BUG | TEST_STALE | ENVIRONMENT | FLAKY | UNKNOWN
 - [ ] APP_BUG and UNKNOWN are escalated (not auto-healed)
 - [ ] TEST_STALE and FLAKY proceed to healer
 - [ ] Commit: "feat: AI-powered failure classifier"
@@ -626,14 +624,14 @@ The JSON schema should be documented with field descriptions for README referenc
 ```
 I need to build src/healers/failure_classifier.py.
 
-When a generated test fails, this module uses Claude to classify the root cause.
+When a generated test fails, this module uses OpenRouter to classify the root cause.
 
 Input: FailedTest object containing:
 - test_name, test_code (the full test source), error_message, stack_trace
 - recent_diff (the git diff that preceded this failure, if any)
 - last_passing_run (timestamp of last success)
 
-Claude should classify into one of:
+OpenRouter should classify into one of:
 - APP_BUG: the application code has a bug; test is correct
 - TEST_STALE: the app changed (schema, URL, selector); test needs updating
 - ENVIRONMENT: Saleor is down or misconfigured; retry will likely fix
@@ -653,7 +651,7 @@ Low confidence (<0.7) should always escalate to human regardless of category.
 
 **Tasks**:
 - [ ] Build `src/healers/self_healer.py`
-- [ ] For TEST_STALE: Claude generates a patched version of the test
+- [ ] For TEST_STALE: OpenRouter generates a patched version of the test
 - [ ] Patching strategies: update GraphQL query fields, update assertions, update variables
 - [ ] Apply patch, re-run the test, verify it passes before committing the fix
 - [ ] If patched test still fails: escalate, do not commit
@@ -666,9 +664,9 @@ I need to build src/healers/self_healer.py — this is the core "self-healing" c
 Input: a FailedTest with category=TEST_STALE and a FailureClassification.
 
 The healer should:
-1. Call Claude with: original test code, error message, current schema for the operation,
+1. Call OpenRouter with: original test code, error message, current schema for the operation,
    and the fix_hint from the classifier
-2. Claude returns a patched test code (full replacement, not a diff)
+2. OpenRouter returns a patched test code (full replacement, not a diff)
 3. Write the patched code to a temp file, run it with PytestRunner
 4. If it passes: replace the original file, log the heal event to heals.jsonl
 5. If it still fails: log as HEAL_FAILED, keep original, flag for human
@@ -782,7 +780,7 @@ This is what the Jenkinsfile calls. Make it clean — the output will be in Jenk
 
 **Tasks**:
 - [ ] Build `src/runners/k6_runner.py` — runs k6 tests, parses results
-- [ ] Build `src/generators/perf_test_generator.py` — Claude generates k6 JS from operation schema
+- [ ] Build `src/generators/perf_test_generator.py` — OpenRouter generates k6 JS from operation schema
 - [ ] Baseline thresholds in config.yaml: p95 < 500ms, error rate < 1%
 - [ ] k6 results feed into quality gate
 - [ ] Commit: "feat: k6 performance test generation and execution"
@@ -792,7 +790,7 @@ This is what the Jenkinsfile calls. Make it clean — the output will be in Jenk
 I need to add performance testing to my agentic QA platform.
 
 Part 1 — src/generators/perf_test_generator.py:
-Use Claude to generate k6 JavaScript test scripts from a GraphQL operation definition.
+Use OpenRouter to generate k6 JavaScript test scripts from a GraphQL operation definition.
 The script should simulate realistic load (10 VUs, 30s duration) and include:
 - Realistic GraphQL POST requests with example variables
 - Thresholds: http_req_duration p(95) < 500, http_req_failed < 0.01
@@ -896,7 +894,7 @@ Then add a security gate rule to quality_gate.py:
 **Tasks**:
 - [ ] Write final `README.md` (structure below)
 - [ ] Write `docs/architecture.md` with full architecture diagram + module descriptions
-- [ ] Write 2-3 ADRs in `docs/adr/`: why Claude over LangChain, why pytest over unittest, why Saleor
+- [ ] Write 2-3 ADRs in `docs/adr/`: why OpenRouter/gpt-oss-120b over other options, why pytest over unittest, why Saleor
 - [ ] Commit: "docs: production-quality README and architecture docs"
 
 **README structure**:
@@ -1022,7 +1020,7 @@ Then add a security gate rule to quality_gate.py:
 | Regression systems for AI-generated code | Diff Analyzer + Risk Scorer | ✅ Week 2 |
 | Quality gates in CI/CD | Jenkins pipeline + Gate Engine | ✅ Week 3 |
 | Playwright/Cypress/Selenium expertise | Playwright UI generator | ✅ Week 2 |
-| LLM experience (Claude) | Tool use, structured output, agent loop | ✅ Throughout |
+| LLM experience (OpenRouter) | Tool use, structured output, agent loop | ✅ Throughout |
 | CI/CD pipelines | Jenkins pipeline-as-code | ✅ Week 3 |
 | Performance testing | k6 generation + execution | ✅ Week 3 |
 | Security testing | ZAP integration + security test gen | ✅ Week 4 |
@@ -1046,7 +1044,7 @@ for Saleor (Python/Django e-commerce). Target role: Chief Agentic Quality Archit
 
 ## Stack
 - Python 3.12, Pydantic v2, pytest, Playwright, httpx
-- Anthropic Claude API (claude-haiku-4-5 for generation, claude-sonnet-4-6 for reasoning)
+- OpenRouter API (gpt-oss-120b:free for generation, Claude Sonnet 4.6 fallback for reasoning)
 - Saleor GraphQL at localhost:8000/graphql/
 - Saleor storefront at localhost:3000
 - Jenkins at localhost:8080
@@ -1104,11 +1102,11 @@ CONTEXT: I am building agentic-qa-platform. The SchemaAnalyzer in
 src/analyzers/schema_analyzer.py is complete. I need the next module.
 
 TASK: Build src/generators/api_test_generator.py that takes a GraphQLOperation
-and returns a TestCase using the Anthropic API with structured output.
+and returns a TestCase using the OpenRouter API with structured output.
 
 CONSTRAINTS:
 - Use Pydantic v2 for all models
-- Use claude-haiku-4-5 for cost efficiency
+- Use openai/gpt-oss-120b:free for cost efficiency
 - The TestCase.test_code must be a complete, executable pytest function
 
 OUTPUT: The module file + unit tests in tests/test_api_test_generator.py
@@ -1182,12 +1180,12 @@ Before we finish this session:
 
 ---
 
-### 6.8 — Managing the Anthropic API Cost
+### 6.8 — Managing the OpenRouter API Cost
 
-- Use `claude-haiku-4-5` for high-volume generation (test generation loops)
-- Use `claude-sonnet-4-6` only for reasoning tasks (risk scoring, failure classification, self-healing)
+- Use `openai/gpt-oss-120b:free` for high-volume generation (test generation loops)
+- Use `anthropic/claude-sonnet-4.6` (paid fallback) only for reasoning tasks (risk scoring, failure classification, self-healing)
 - Add `max_tokens=1024` guards on generation calls to prevent runaway costs
-- Estimated total cost for the project: **$15-25 USD**
+- Estimated total cost for the project: **Free-tier for generation, $5-10 USD for fallback reasoning**
 
 ---
 

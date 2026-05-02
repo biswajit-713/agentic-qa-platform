@@ -6,10 +6,7 @@ for Saleor (Python/Django e-commerce). Portfolio project for Agentic QA Architec
 
 ## Stack
 - Python 3.12, Pydantic v2, pytest, Playwright, httpx
-- LLM API: OpenRouter
-   - Generation model: openai/gpt-oss-120b:free
-   - Reasoning model: openai/gpt-oss-120b:free with high-reasoning prompt mode
-   - Fallback reasoning model: anthropic/claude-sonnet-4.6 when paid fallback is enabled
+- LLM API: OpenRouter (see [LLM_MODELS.md](LLM_MODELS.md))
 - Saleor GraphQL at localhost:8000/graphql/
 - Saleor storefront at localhost:3000
 - Jenkins at localhost:8080

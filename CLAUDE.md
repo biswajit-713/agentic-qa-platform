@@ -26,6 +26,7 @@ for Saleor (Python/Django e-commerce). Portfolio project for Agentic QA Architec
 
 ## Built So Far
 
+- [2026-05-02] Day 4: Enhanced API test generator with type introspection for complex input types (CheckoutCreateInput), `get_type_definition()` in SchemaAnalyzer, `_get_input_type_info()` in generator, all 18 tests passing
 - [2026-05-02] Day 3: LLM-powered API test generator using OpenRouter, `TestCase` Pydantic model with structured output, 5 unit tests passing (18 total)
 - [2026-05-01] Day 2: GraphQL schema analyzer with introspection, 13 unit tests passing
 - [2026-05-01] Day 1: docker-compose.yml (Saleor + PostgreSQL + Redis), src/config/settings.py (pydantic-settings configuration), scripts/health_check.py (GraphQL + Anthropic API health check), .env.example template

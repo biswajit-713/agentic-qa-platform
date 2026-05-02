@@ -161,6 +161,28 @@ Output test_code as a complete, ready-to-run pytest function with all imports in
             logger.warning(f"Error getting type info for {type_name}: {e}")
             return f"Error retrieving type info: {str(e)}"
 
+    def _extract_nested_input_type(self, type_obj: dict) -> Optional[str]:
+        """Extract the first INPUT_OBJECT type found in a nested type structure.
+
+        For example, from [AddressInput!]! returns 'AddressInput'.
+        """
+        if not type_obj:
+            return None
+
+        kind = type_obj.get("kind", "")
+        name = type_obj.get("name")
+
+        # If this is an INPUT_OBJECT, return its name
+        if kind == "INPUT_OBJECT":
+            return name
+
+        # Recursively check ofType for wrapped types
+        of_type = type_obj.get("ofType")
+        if of_type:
+            return self._extract_nested_input_type(of_type)
+
+        return None
+
     def _extract_full_type_string(self, type_obj: dict) -> str:
         """Extract full type string including wrappers (e.g., [String!]!)."""
         if not type_obj:
@@ -184,6 +206,7 @@ Output test_code as a complete, ready-to-run pytest function with all imports in
 
         For complex input types (like CheckoutCreateInput), includes
         detailed field information to help the LLM generate realistic test data.
+        Recursively includes nested input types (AddressInput, etc).
         """
         required_args = [arg for arg in operation.args if arg.is_required]
         optional_args = [arg for arg in operation.args if not arg.is_required]
@@ -199,14 +222,37 @@ Output test_code as a complete, ready-to-run pytest function with all imports in
             for arg in optional_args:
                 args_description += f"- {arg.name} ({arg.type_name}): {arg.description or 'N/A'}\n"
 
-        # For complex input types (ending with Input), include field details
-        type_details = ""
+        # Collect all input types to destructure (main args + nested types)
+        types_to_destructure = set()
         for arg in required_args + optional_args:
             if "Input" in arg.type_name:
-                fields_info = self._get_input_type_info(arg.type_name)
-                # Check if we got actual fields (not an error message)
-                if fields_info and not fields_info.startswith("Type") and not fields_info.startswith("Error"):
-                    type_details += f"\n**Fields of {arg.type_name}:**\n{fields_info}\n"
+                clean_name = arg.type_name.replace("!", "").replace("[", "").replace("]", "")
+                types_to_destructure.add(clean_name)
+
+        # Add nested input types found in fields
+        visited = set()
+        type_details = ""
+        while types_to_destructure:
+            type_name = types_to_destructure.pop()
+            if type_name in visited:
+                continue
+            visited.add(type_name)
+
+            fields_info = self._get_input_type_info(type_name)
+            # Check if we got actual fields (not an error message)
+            if fields_info and not fields_info.startswith("Type") and not fields_info.startswith("Error"):
+                type_details += f"\n**Fields of {type_name}:**\n{fields_info}\n"
+
+                # Find nested input types in this type's fields
+                type_def = self.schema_analyzer.get_type_definition(type_name)
+                if type_def:
+                    input_fields = type_def.get("inputFields") or type_def.get("fields") or []
+                    for field in input_fields:
+                        field_type = field.get("type", {})
+                        # Extract the base type name from the nested type
+                        nested_type = self._extract_nested_input_type(field_type)
+                        if nested_type and nested_type not in visited:
+                            types_to_destructure.add(nested_type)
 
         return f"""Generate a pytest test case for the following Saleor GraphQL operation.
 

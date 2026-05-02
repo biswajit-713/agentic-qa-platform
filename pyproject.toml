@@ -12,6 +12,7 @@ dependencies = [
     "httpx",
     "python-dotenv",
     "pydantic-settings>=2.14.0",
+    "openai>=1.0.0",
 ]
 
 [dependency-groups]

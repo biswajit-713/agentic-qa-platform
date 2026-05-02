@@ -181,8 +181,11 @@ class SchemaAnalyzer:
 
     def __init__(self, graphql_url: Optional[str] = None):
         """Initialize SchemaAnalyzer with a GraphQL endpoint URL."""
-        settings = get_settings()
-        self.graphql_url = graphql_url or str(settings.saleor_graphql_url)
+        if graphql_url:
+            self.graphql_url = graphql_url
+        else:
+            settings = get_settings()
+            self.graphql_url = str(settings.saleor_graphql_url)
         self._schema = None
         self._queries: dict[str, GraphQLOperation] = {}
         self._mutations: dict[str, GraphQLOperation] = {}
@@ -300,3 +303,23 @@ class SchemaAnalyzer:
             self.fetch_schema()
 
         return self._queries.get(name) or self._mutations.get(name)
+
+    def get_type_definition(self, type_name: str) -> Optional[dict]:
+        """Get the full definition of a GraphQL type by name.
+
+        Args:
+            type_name: Name of the type to look up (e.g., 'CheckoutCreateInput')
+
+        Returns:
+            Dictionary with type definition including fields and structure,
+            or None if type not found
+        """
+        if not self._schema:
+            self.fetch_schema()
+
+        types = self._schema.get("types", [])
+        for type_obj in types:
+            if type_obj.get("name") == type_name:
+                return type_obj
+
+        return None

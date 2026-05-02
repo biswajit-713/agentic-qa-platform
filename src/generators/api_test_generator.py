@@ -139,12 +139,17 @@ Output test_code as a complete, ready-to-run pytest function with all imports in
     def _get_input_type_info(self, type_name: str) -> str:
         """Get detailed info about an input type for the prompt."""
         try:
-            type_def = self.schema_analyzer.get_type_definition(type_name)
+            # Strip GraphQL type modifiers (! and []) to get the base type name
+            clean_type_name = type_name.replace("!", "").replace("[", "").replace("]", "")
+            type_def = self.schema_analyzer.get_type_definition(clean_type_name)
             if not type_def:
                 return f"Type '{type_name}' not found"
 
             fields_info = []
-            for field in type_def.get("fields", []):
+            # INPUT_OBJECT types use inputFields, OBJECT types use fields
+            fields = type_def.get("inputFields") or type_def.get("fields") or []
+
+            for field in fields:
                 field_type = self._extract_full_type_string(field.get("type", {}))
                 fields_info.append(
                     f"  - {field.get('name')} ({field_type}): {field.get('description', 'N/A')}"
@@ -199,7 +204,8 @@ Output test_code as a complete, ready-to-run pytest function with all imports in
         for arg in required_args + optional_args:
             if "Input" in arg.type_name:
                 fields_info = self._get_input_type_info(arg.type_name)
-                if fields_info and "not found" not in fields_info.lower():
+                # Check if we got actual fields (not an error message)
+                if fields_info and not fields_info.startswith("Type") and not fields_info.startswith("Error"):
                     type_details += f"\n**Fields of {arg.type_name}:**\n{fields_info}\n"
 
         return f"""Generate a pytest test case for the following Saleor GraphQL operation.

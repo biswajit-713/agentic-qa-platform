@@ -104,6 +104,22 @@ class SchemaAnalyzer:
               }
             }
           }
+          inputFields {
+            name
+            description
+            type {
+              name
+              kind
+              ofType {
+                name
+                kind
+                ofType {
+                  name
+                  kind
+                }
+              }
+            }
+          }
         }
         queryType {
           name

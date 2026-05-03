@@ -295,16 +295,18 @@ Target operation: CheckoutCreate mutation (which has complex nested input).
 
 ---
 
-#### Day 5 — Test Runner
+#### Day 5 — Test Runner ✅ COMPLETED (2026-05-03)
 
 **Outcome**: Execution engine that runs generated tests, captures structured results.
 
 **Tasks**:
-- [ ] Build `src/runners/pytest_runner.py`
-- [ ] Runs all tests in `generated_tests/` directory using pytest programmatic API
-- [ ] Captures results: test name, status (pass/fail/error), duration, error message, response data
-- [ ] Returns `TestRunResult` Pydantic model
-- [ ] Commit: "feat: pytest test runner with structured results"
+- [x] Build `src/runners/pytest_runner.py`
+- [x] Runs all tests in `generated_tests/` directory using pytest programmatic API
+- [x] Captures results: test name, status (pass/fail/error), duration, error message, response data
+- [x] Returns `TestRunResult` Pydantic model
+- [x] Commit: "feat: pytest test runner with structured results"
+
+**Completed**: Custom pytest plugin (ResultCollector) with full exception capture, PytestRunResult and SingleTestResult models, test filtering and pattern support, 27 total tests passing (18 existing + 9 new)
 
 **Claude Code prompt for Day 5**:
 ```

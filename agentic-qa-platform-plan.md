@@ -153,20 +153,22 @@ pip install httpx pytest playwright pydantic pyyaml python-dotenv openai
 
 ---
 
-#### Day 1 — Environment & Repo Setup
+#### Day 1 — Environment & Repo Setup ✅ COMPLETED (2026-05-01)
 
 **Outcome**: Saleor running on `localhost:8000`, repo scaffolded, OpenRouter API connected.
 
 **Tasks**:
-- [ ] Create GitHub repo `agentic-qa-platform`, clone locally
-- [ ] Create `CLAUDE.md` manually — **before opening Claude Code** (see Section 1 setup)
-- [ ] Open Claude Code — now CLAUDE.md is loaded automatically into the session
-- [ ] Use the Day 1 Claude Code prompt below to scaffold the project structure
-- [ ] Create `.env` with `OPENROUTER_API_KEY`, `SALEOR_URL`
-- [ ] Start Saleor with Docker Compose (`docker compose up`)
-- [ ] Verify Saleor GraphQL playground at `localhost:8000/graphql/`
-- [ ] Update "Built So Far" in `CLAUDE.md` before closing the session
-- [ ] Initial commit: "chore: scaffold project structure"
+- [x] Create GitHub repo `agentic-qa-platform`, clone locally
+- [x] Create `CLAUDE.md` manually — **before opening Claude Code** (see Section 1 setup)
+- [x] Open Claude Code — now CLAUDE.md is loaded automatically into the session
+- [x] Use the Day 1 Claude Code prompt below to scaffold the project structure
+- [x] Create `.env` with `OPENROUTER_API_KEY`, `SALEOR_URL`
+- [x] Start Saleor with Docker Compose (`docker compose up`)
+- [x] Verify Saleor GraphQL playground at `localhost:8000/graphql/`
+- [x] Update "Built So Far" in `CLAUDE.md` before closing the session
+- [x] Initial commit: "chore: scaffold project structure"
+
+**Completed**: docker-compose.yml (Saleor + PostgreSQL + Redis), src/config/settings.py (pydantic-settings), scripts/health_check.py
 
 **Claude Code prompt for Day 1**:
 ```
@@ -183,17 +185,19 @@ The .env should contain: OPENROUTER_API_KEY, SALEOR_URL, SALEOR_GRAPHQL_URL
 
 ---
 
-#### Day 2 — GraphQL Schema Analyzer
+#### Day 2 — GraphQL Schema Analyzer ✅ COMPLETED (2026-05-01)
 
 **Outcome**: Module that parses Saleor's full GraphQL schema into structured Python objects.
 
 **Tasks**:
-- [ ] Build `src/analyzers/schema_analyzer.py`
-- [ ] Use GraphQL introspection query to fetch full schema from Saleor
-- [ ] Parse into Pydantic models: `GraphQLOperation`, `GraphQLField`, `GraphQLType`
-- [ ] Output: dict of all queries and mutations with their input/output types
-- [ ] Write 3-5 unit tests for the analyzer
-- [ ] Commit: "feat: GraphQL schema analyzer"
+- [x] Build `src/analyzers/schema_analyzer.py`
+- [x] Use GraphQL introspection query to fetch full schema from Saleor
+- [x] Parse into Pydantic models: `GraphQLOperation`, `GraphQLField`, `GraphQLType`
+- [x] Output: dict of all queries and mutations with their input/output types
+- [x] Write 3-5 unit tests for the analyzer
+- [x] Commit: "feat: GraphQL schema analyzer"
+
+**Completed**: Full introspection support with 13 unit tests, extracting all queries/mutations/types
 
 **Claude Code prompt for Day 2**:
 ```
@@ -214,17 +218,19 @@ Keep the models minimal — only extract what's needed for test generation later
 
 ---
 
-#### Day 3 — LLM Refresher + Test Generator v1
+#### Day 3 — LLM Refresher + Test Generator v1 ✅ COMPLETED (2026-05-02)
 
 **Outcome**: OpenRouter generates structured pytest test cases from a schema fragment using structured output.
 
 **Tasks**:
-- [ ] Build `src/generators/api_test_generator.py`
-- [ ] Prompt OpenRouter with a GraphQL operation + schema → get back a `TestCase` Pydantic model
-- [ ] `TestCase` contains: test name, setup steps, GraphQL query/mutation body, assertions
-- [ ] Write generated test to a `.py` file in `generated_tests/api/`
-- [ ] Verify 3 generated tests run against live Saleor
-- [ ] Commit: "feat: LLM-powered API test generator v1"
+- [x] Build `src/generators/api_test_generator.py`
+- [x] Prompt OpenRouter with a GraphQL operation + schema → get back a `TestCase` Pydantic model
+- [x] `TestCase` contains: test name, setup steps, GraphQL query/mutation body, assertions
+- [x] Write generated test to a `.py` file in `generated_tests/api/`
+- [x] Verify 3 generated tests run against live Saleor
+- [x] Commit: "feat: LLM-powered API test generator v1"
+
+**Completed**: ApiTestGenerator with structured output, 5 unit tests, integration with OpenRouter
 
 **Claude Code prompt for Day 3**:
 ```
@@ -255,15 +261,17 @@ Show me the full implementation including the OpenRouter API call with proper er
 
 ---
 
-#### Day 4 — Test Generator v2: Tool Use
+#### Day 4 — Test Generator v2: Tool Use ✅ COMPLETED (2026-05-02)
 
 **Outcome**: Generator uses OpenRouter tool use to introspect schema dynamically during generation.
 
 **Tasks**:
-- [ ] Add tool definitions to the generator: `introspect_schema`, `get_related_type`, `check_existing_tests`
-- [ ] Agent calls tools during generation to resolve complex type dependencies
-- [ ] Test: generate tests for a mutation that has nested input types (e.g., `createOrder`)
-- [ ] Commit: "feat: tool-use-powered test generation"
+- [x] Add tool definitions to the generator: `introspect_schema`, `get_related_type`, `check_existing_tests`
+- [x] Agent calls tools during generation to resolve complex type dependencies
+- [x] Test: generate tests for a mutation that has nested input types (e.g., `createOrder`)
+- [x] Commit: "feat: tool-use-powered test generation"
+
+**Completed**: Type introspection with `get_type_definition()`, recursive destructuring of nested InputObject types, 18 total tests passing
 
 **Claude Code prompt for Day 4**:
 ```

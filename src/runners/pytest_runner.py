@@ -57,21 +57,18 @@ class ResultCollector:
     def __init__(self):
         """Initialize result collector."""
         self.test_results: list[SingleTestResult] = []
-        self.current_test: Optional[dict] = None
-        self.current_stdout: list[str] = []
+        self.current_test_start_time: Optional[float] = None
+        self.current_test_nodeid: Optional[str] = None
 
     def pytest_runtest_setup(self, item):
         """Called before each test runs."""
-        self.current_test = {
-            "nodeid": item.nodeid,
-            "start_time": time.time(),
-        }
-        self.current_stdout = []
+        self.current_test_nodeid = item.nodeid
+        self.current_test_start_time = time.time()
 
     def pytest_runtest_makereport(self, item, call):
         """Called after each test phase (setup, call, teardown)."""
-        if call.when == "call" and self.current_test:
-            # Capture outcome
+        if call.when == "call" and self.current_test_start_time is not None:
+            # Determine outcome and error message
             outcome = "passed"
             error_message = None
 
@@ -80,26 +77,18 @@ class ResultCollector:
                     outcome = "failed"
                 else:
                     outcome = "error"
-                # Capture full exception info: ExceptionType: message
-                exc_type_name = call.excinfo.typename
-                exc_value = str(call.excinfo.value)
-                error_message = f"{exc_type_name}: {exc_value}"
+                error_message = f"{call.excinfo.typename}: {call.excinfo.value}"
 
-            # Only finalize on the call phase
-            duration = time.time() - self.current_test["start_time"]
+            duration = time.time() - self.current_test_start_time
 
             result = SingleTestResult(
-                test_name=self.current_test["nodeid"],
+                test_name=item.nodeid,
                 status=outcome,
                 duration=duration,
                 error_message=error_message,
-                stdout="\n".join(self.current_stdout),
+                stdout="",
             )
             self.test_results.append(result)
-
-    def pytest_sessionfinish(self, session):
-        """Called after the test session finishes."""
-        pass
 
 
 def run_tests(

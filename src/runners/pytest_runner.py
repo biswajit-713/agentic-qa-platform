@@ -47,10 +47,6 @@ class PytestRunResult(BaseModel):
     )
 
 
-# Backward compatibility alias
-TestRunResult = PytestRunResult
-
-
 class ResultCollector:
     """Custom pytest plugin to collect detailed test results."""
 

@@ -303,7 +303,7 @@ Target operation: CheckoutCreate mutation (which has complex nested input).
 - [x] Build `src/runners/pytest_runner.py`
 - [x] Runs all tests in `generated_tests/` directory using pytest programmatic API
 - [x] Captures results: test name, status (pass/fail/error), duration, error message, response data
-- [x] Returns `TestRunResult` Pydantic model
+- [x] Returns `PytestRunResult` Pydantic model
 - [x] Commit: "feat: pytest test runner with structured results"
 
 **Completed**: Custom pytest plugin (ResultCollector) with full exception capture, PytestRunResult and SingleTestResult models, test filtering and pattern support, 27 total tests passing (18 existing + 9 new)
@@ -317,7 +317,7 @@ directory and returns structured results.
 
 Requirements:
 1. Use pytest's Python API (pytest.main with a custom plugin) to capture results
-2. Return a TestRunResult Pydantic v2 model containing:
+2. Return a PytestRunResult Pydantic v2 model containing:
    - total: int
    - passed: int
    - failed: int

@@ -373,17 +373,19 @@ This module drives what the agent generates next.
 
 ---
 
-#### Day 7 — Week 1 Integration + Polish
+#### Day 7 — Week 1 Integration + Polish ✅ COMPLETED (2026-05-03)
 
 **Outcome**: Single command generates 50+ tests, runs them, and reports coverage.
 
 **Tasks**:
-- [ ] Build `src/agent/generate_command.py` — orchestrates: analyze schema → check coverage → generate for top uncovered → run → report
-- [ ] Wire all Week 1 modules together
-- [ ] Target: 50+ passing API tests generated
-- [ ] Write `docs/architecture.md` Week 1 section
-- [ ] Update README with Week 1 section: what it does, how to run it
-- [ ] Commit: "feat: Week 1 complete — LLM-driven API test generation"
+- [x] Build `src/agent/generate_command.py` — orchestrates: analyze schema → check coverage → generate for top uncovered → run → report
+- [x] Wire all Week 1 modules together
+- [x] Target: 50+ passing API tests generated
+- [x] Write `docs/architecture.md` Week 1 section
+- [x] Update README with Week 1 section: what it does, how to run it
+- [x] Commit: "feat: Week 1 complete — LLM-driven API test generation"
+
+**Completed**: GenerateCommand orchestrator with GenerationReport model, 5 new tests, CLI with typer, comprehensive architecture.md and README, all 40 tests passing
 
 ---
 

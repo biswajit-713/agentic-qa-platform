@@ -26,7 +26,8 @@ for Saleor (Python/Django e-commerce). Portfolio project for Agentic QA Architec
 
 ## Built So Far
 
-- [2026-05-03] Day 6: Coverage analyzer with priority scoring for uncovered operations. All 35 tests passing (8 new)
+- [2026-05-03 10:30] Day 7: Week 1 orchestrator complete. GenerateCommand (typer CLI) wires schema → coverage → generate → run → report. JSON reporting with before/after coverage deltas. 5 new tests, all 40 tests passing. docs/architecture.md + README.md complete.
+- [2026-05-03 10:24] Day 6: Coverage analyzer with priority scoring for uncovered operations. All 35 tests passing (8 new)
 - [2026-05-03] Day 5: Test runner with structured results. Built `src/runners/pytest_runner.py` with custom pytest plugin, `PytestRunResult` and `SingleTestResult` Pydantic models, test filtering/pattern support, full exception capture. All 27 tests passing (18 existing + 9 new)
 - [2026-05-02] Day 4: Enhanced API test generator with type introspection and recursive destructuring. Added `get_type_definition()` and `inputFields` introspection for INPUT_OBJECT types. Recursive destructuring of nested types (AddressInput, CheckoutValidationRules, MetadataInput, etc). All 18 tests passing
 - [2026-05-02] Day 3: LLM-powered API test generator using OpenRouter, `TestCase` Pydantic model with structured output, 5 unit tests passing (18 total)

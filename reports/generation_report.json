@@ -1,0 +1,59 @@
+{
+  "timestamp": "2026-05-03T06:36:22.189824+00:00",
+  "count_requested": 10,
+  "generated": [
+    "test_stored_payment_method_request_delete",
+    "test_draft_order_bulk_delete",
+    "test_draft_order_update",
+    "test_order_grant_refund_create",
+    "test_order_line_delete"
+  ],
+  "failed_generations": [
+    {
+      "operation_name": "draftOrderCreate",
+      "error": "'NoneType' object is not iterable"
+    },
+    {
+      "operation_name": "draftOrderDelete",
+      "error": "'NoneType' object is not iterable"
+    },
+    {
+      "operation_name": "orderFulfillmentUpdateTracking",
+      "error": "'NoneType' object is not iterable"
+    },
+    {
+      "operation_name": "orderGrantRefundUpdate",
+      "error": "1 validation error for TestCase\n  Invalid JSON: key must be a string at line 6 column 40 [type=json_invalid, input_value='{\\n  \"test_name\": \"test_...\\n\\n    \\\\n\"\\n}   }\"}\\n', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.13/v/json_invalid"
+    },
+    {
+      "operation_name": "orderLinesCreate",
+      "error": "'NoneType' object is not iterable"
+    }
+  ],
+  "coverage_before": 0.0,
+  "coverage_after": 0.0,
+  "total_operations": 387,
+  "run_result": {
+    "total": 2,
+    "passed": 0,
+    "failed": 2,
+    "errors": 0,
+    "duration_seconds": 0.380842924118042,
+    "test_results": [
+      {
+        "test_name": "generated_tests/api/test_order_grant_refund_create.py::test_order_grant_refund_create",
+        "status": "failed",
+        "duration": 0.009723901748657227,
+        "error_message": "AssertionError: Unexpected status code: 400\nassert 400 == 200\n +  where 400 = <Response [400 Bad Request]>.status_code",
+        "stdout": ""
+      },
+      {
+        "test_name": "generated_tests/api/test_order_line_delete.py::test_order_line_delete[READY_TO_FULFILL]",
+        "status": "failed",
+        "duration": 0.023665904998779297,
+        "error_message": "AssertionError: GraphQL errors while fetching order: [{'message': 'To access this path, you need one of the following permissions: MANAGE_ORDERS', 'locations': [{'line': 3, 'column': 3}], 'path': ['orders'], 'extensions': {'exception': {'code': 'PermissionDenied', 'stacktrace': ['Traceback (most recent call last):', '  File \"/usr/local/lib/python3.12/site-packages/graphql/execution/executor.py\", line 452, in resolve_or_error', '    return executor.execute(resolve_fn, source, info, **args)', '           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^', '  File \"/usr/local/lib/python3.12/site-packages/graphql/execution/executors/sync.py\", line 16, in execute', '    return fn(*args, **kwargs)', '           ^^^^^^^^^^^^^^^^^^^', '  File \"/app/saleor/graphql/core/fields.py\", line 158, in new_resolver', '    return wrapped_resolver(obj, info, **kwargs)', '           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^', '  File \"/app/saleor/graphql/decorators.py\", line 32, in wrapper', '    return func(info.context, *args, **kwargs)', '           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^', '  File \"/app/saleor/graphql/decorators.py\", line 46, in wrapper', '    test_func(context)', '  File \"/app/saleor/graphql/decorators.py\", line 87, in check_perms', '    raise PermissionDenied(permissions=perms)', 'saleor.core.exceptions.PermissionDenied: To access this path, you need one of the following permissions: MANAGE_ORDERS']}}}]\nassert 'errors' not in {'data': {'orders': None}, 'errors': [{'extensions': {'exception': {'code': 'PermissionDenied', 'stacktrace': ['Traceb...ns: MANAGE_ORDERS', 'path': ['orders']}], 'extensions': {'cost': {'maximumAvailable': 50000, 'requestedQueryCost': 2}}}",
+        "stdout": ""
+      }
+    ]
+  }
+}

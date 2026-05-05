@@ -1,31 +1,26 @@
-import os
-import json
-import httpx
 import pytest
+from conftest import execute_graphql
 
-SALEOR_GRAPHQL_URL = os.getenv(
-    "SALEOR_GRAPHQL_URL", "http://localhost:8000/graphql/"
-)
-SALEOR_TOKEN = os.getenv("SALEOR_TOKEN")
-# ID of a draft order that exists in the test environment.
-DRAFT_ORDER_ID = os.getenv("DRAFT_ORDER_ID")
+@pytest.mark.parametrize('billing_city,country_area,postal_code', [
+    ('SPRINGFIELD', 'IL', '62701'),
+])
+def test_draft_order_update(billing_city, country_area, postal_code, auth_headers, channel_id):
+    """Create a draft order, then update its billing address and customer note.
 
-@pytest.mark.skipif(
-    not SALEOR_TOKEN or not DRAFT_ORDER_ID,
-    reason="SALEOR_TOKEN and DRAFT_ORDER_ID environment variables must be set",
-)
-def test_draft_order_update():
-    """Update a draft order's email and metadata and verify the response."""
-    mutation = """
-    mutation DraftOrderUpdate($id: ID!, $input: DraftOrderInput!) {
-      draftOrderUpdate(id: $id, input: $input) {
+    The test verifies that:
+    * Both mutations return no errors.
+    * The returned order ID is the same after the update.
+    * The billing address fields are updated as requested.
+    * The customer note is persisted.
+    """
+    # ---------------------------------------------------------------------
+    # Step 1: Create a minimal draft order so we have a valid ID to update.
+    # ---------------------------------------------------------------------
+    create_mutation = '''
+    mutation DraftOrderCreate($input: DraftOrderCreateInput!) {
+      draftOrderCreate(input: $input) {
         order {
           id
-          userEmail
-          metadata {
-            key
-            value
-          }
         }
         errors {
           field
@@ -33,49 +28,77 @@ def test_draft_order_update():
         }
       }
     }
-    """
-
-    new_email = "testuser+updated@example.com"
-    variables = {
-        "id": DRAFT_ORDER_ID,
+    '''
+    create_variables = {
         "input": {
-            "userEmail": new_email,
-            "metadata": [
-                {"key": "testKey", "value": "testValue"}
-            ]
-        },
+            "channelId": channel_id,
+        }
     }
+    create_resp = execute_graphql(create_mutation, create_variables, headers=auth_headers)
+    create_data = create_resp.get('data', {}).get('draftOrderCreate', {})
+    create_errors = create_data.get('errors', [])
+    assert len(create_errors) == 0, f"Draft order creation errors: {create_errors}"
+    order_id = create_data.get('order', {}).get('id')
+    assert order_id, "Draft order creation did not return an order ID"
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {SALEOR_TOKEN}",
+    # ---------------------------------------------------------------------
+    # Step 2: Update the draft order with a billing address and a note.
+    # ---------------------------------------------------------------------
+    update_mutation = '''
+    mutation DraftOrderUpdate($id: ID, $input: DraftOrderInput!) {
+      draftOrderUpdate(id: $id, input: $input) {
+        order {
+          id
+          billingAddress {
+            firstName
+            city
+          }
+          customerNote
+        }
+        errors {
+          field
+          message
+        }
+      }
     }
+    '''
+    update_variables = {
+        "id": order_id,
+        "input": {
+            "billingAddress": {
+                "firstName": "John",
+                "lastName": "Doe",
+                "streetAddress1": "742 Evergreen Terrace",
+                "city": billing_city,
+                "countryArea": country_area,
+                "postalCode": postal_code,
+                "country": "US",
+                "skipValidation": True
+            },
+            "customerNote": "Please deliver between 9am-5pm",
+            "saveBillingAddress": True
+        }
+    }
+    update_resp = execute_graphql(update_mutation, update_variables, headers=auth_headers)
+    update_data = update_resp.get('data', {}).get('draftOrderUpdate', {})
+    update_errors = update_data.get('errors', [])
+    assert len(update_errors) == 0, f"Draft order update errors: {update_errors}"
 
-    payload = {"query": mutation, "variables": variables}
+    updated_order = update_data.get('order')
+    assert updated_order, "Update mutation did not return an order object"
+    # The ID must stay the same after the update.
+    assert updated_order.get('id') == order_id, "Order ID changed after update"
+    # Verify billing address fields.
+    billing = updated_order.get('billingAddress')
+    assert billing, "Billing address was not returned"
+    assert billing.get('firstName') == "John", "Billing firstName not updated"
+    assert billing.get('city') == billing_city, "Billing city not updated"
+    # Verify the customer note.
+    assert updated_order.get('customerNote') == "Please deliver between 9am-5pm", "Customer note not persisted"
 
-    with httpx.Client(timeout=30.0) as client:
-        response = client.post(SALEOR_GRAPHQL_URL, headers=headers, json=payload)
+    # ---------------------------------------------------------------------
+    # Optional clean‑up: delete the draft order if the API provides such a mutation.
+    # (Not required for the assertion logic of this test.)
+    # ---------------------------------------------------------------------
 
-    # Basic HTTP checks
-    assert response.status_code == 200, f"Unexpected status code: {response.status_code}"
-
-    try:
-        resp_json = response.json()
-    except json.JSONDecodeError as exc:
-        pytest.fail(f"Response is not valid JSON: {exc}")
-
-    # GraphQL error handling
-    assert "errors" not in resp_json, f"GraphQL errors: {resp_json.get('errors')}"
-    assert resp_json.get("data") is not None, "Response missing data field"
-
-    update_data = resp_json["data"]["draftOrderUpdate"]
-    assert update_data["order"] is not None, "Order not returned"
-    assert update_data["order"]["userEmail"] == new_email, "Email was not updated"
-    # Verify metadata was set correctly
-    metadata = update_data["order"]["metadata"]
-    assert isinstance(metadata, list) and len(metadata) > 0, "Metadata list is empty"
-    assert metadata[0]["key"] == "testKey", "Metadata key mismatch"
-    assert metadata[0]["value"] == "testValue", "Metadata value mismatch"
-
-    # Ensure no mutation‑level errors were reported
-    assert not update_data["errors"], f"Mutation returned errors: {update_data['errors']}"
+    # Test passed if we reach this point without assertion failures.

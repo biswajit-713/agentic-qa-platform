@@ -60,50 +60,39 @@ def mutation_operation() -> GraphQLOperation:
 def sample_test_case() -> TestCase:
     """A sample generated test case."""
     return TestCase(
-        test_name="get_product_by_id",
+        test_name="test_get_product_by_id",
         description="Test fetching a product by its ID",
         graphql_query="""
         query GetProduct($id: ID!) {
             product(id: $id) {
                 id
                 name
-                price
+                slug
             }
         }
         """,
-        variables={"id": "UHJvZHVjdDox"},
-        assertions=[
-            "Response status is 200",
-            "Response data contains product with matching ID",
-            "Product has name and price fields",
-        ],
         test_code="""
-import httpx
-import os
+import pytest
+from conftest import execute_graphql
 
 
-def test_get_product_by_id():
-    url = os.getenv("SALEOR_GRAPHQL_URL", "http://localhost:8000/graphql/")
+def test_get_product_by_id(auth_headers):
     query = '''
     query GetProduct($id: ID!) {
         product(id: $id) {
             id
             name
-            price
+            slug
         }
     }
     '''
     variables = {"id": "UHJvZHVjdDox"}
 
-    response = httpx.post(url, json={"query": query, "variables": variables})
-
-    assert response.status_code == 200
-    data = response.json()
-    assert "errors" not in data
-    assert "data" in data
-    assert data["data"]["product"]["id"] == variables["id"]
-    assert "name" in data["data"]["product"]
-    assert "price" in data["data"]["product"]
+    response_data = execute_graphql(query, variables, headers=auth_headers)
+    data = response_data.get("data", {}).get("product", {})
+    assert data.get("id") == variables["id"]
+    assert "name" in data
+    assert "slug" in data
 """,
     )
 
@@ -238,3 +227,36 @@ def test_generate_handles_api_error(mock_openai_class, mock_get_settings, query_
 
     with pytest.raises(Exception, match="API request failed"):
         generator.generate(query_operation)
+
+
+@patch("src.generators.api_test_generator.get_settings")
+@patch("src.generators.api_test_generator.OpenAI")
+def test_generated_code_imports_execute_graphql(mock_openai_class, mock_get_settings, query_operation, sample_test_case):
+    """Generated test_code must import execute_graphql from conftest, not use httpx directly."""
+    mock_settings = Mock()
+    mock_settings.openrouter_api_key = "test-key"
+    mock_settings.openrouter_base_url = "https://openrouter.ai/api/v1"
+    mock_settings.saleor_graphql_url = "http://localhost:8000/graphql/"
+    mock_get_settings.return_value = mock_settings
+
+    mock_client = MagicMock()
+    mock_openai_class.return_value = mock_client
+
+    mock_response = Mock()
+    mock_message = Mock()
+    mock_message.parsed = sample_test_case
+    mock_response.choices = [Mock(message=mock_message)]
+    mock_client.beta.chat.completions.parse.return_value = mock_response
+
+    generator = ApiTestGenerator()
+    result = generator.generate(query_operation)
+
+    assert "from conftest import execute_graphql" in result.test_code, (
+        "Generated test must import execute_graphql from conftest"
+    )
+    assert "import httpx" not in result.test_code, (
+        "Generated test must not import httpx directly"
+    )
+    assert "import os" not in result.test_code, (
+        "Generated test must not import os directly"
+    )

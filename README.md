@@ -19,7 +19,7 @@ cp .env.example .env
 # Edit .env: set OPENROUTER_API_KEY and SALEOR_GRAPHQL_URL
 
 # 3. Start Saleor (if not already running)
-docker-compose up -d
+podman compose up -d
 
 # 4. Generate 10 tests from uncovered operations
 uv run python -m src.agent.generate_command --count 10
@@ -126,10 +126,6 @@ All tests use mocking and temporary directories — no external services require
 
 Full roadmap: [ROADMAP.md](ROADMAP.md)
 
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## License
-
-MIT
+# Change Log
+1. wrap graphql api call and auth_headers to conftest.py and update system prompt to use onlyy the wrapped method
+2. set max_token limit for completion token to force the LLM write concise tests

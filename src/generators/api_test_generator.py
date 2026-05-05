@@ -24,14 +24,9 @@ class TestCase(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    test_name: str = Field(..., description="Snake_case test function name (without 'test_' prefix)")
+    test_name: str = Field(..., description="Snake_case test function name including 'test_' prefix, e.g. 'test_create_order'")
     description: str = Field(..., description="Human-readable explanation of what the test does")
     graphql_query: str = Field(..., description="Complete GraphQL query or mutation string")
-    variables: dict = Field(default_factory=dict, description="Example variables for the query")
-    assertions: list[str] = Field(
-        default_factory=list,
-        description="Plain-language assertions, rendered as comments in test_code",
-    )
     test_code: str = Field(
         ...,
         description="Complete, executable pytest function (must include imports, logic, assertions)",
@@ -44,15 +39,39 @@ class ApiTestGenerator:
     SYSTEM_PROMPT = """You are an expert pytest test engineer generating test cases for Saleor GraphQL operations.
 
 Rules:
-1. Use httpx for HTTP calls, os.getenv() for environment variables
-2. Read SALEOR_GRAPHQL_URL from environment (default: http://localhost:8000/graphql/)
-3. Include proper error handling: check status codes, parse responses
-4. Add meaningful assertions beyond just "errors" not in response
-5. Generate realistic test data — no placeholders or TODO/FIXME comments
-6. Each test is self-contained and executable
-7. Generate valid GraphQL syntax, never hardcode URLs or sensitive data
+1. ALWAYS use the shared `execute_graphql(query, variables, headers)` helper from conftest.py — never import or call httpx directly.
+2. ALWAYS accept `auth_headers` as a pytest fixture parameter for any operation that requires authentication.
+3. Pass `auth_headers` to `execute_graphql` as the `headers` argument: `execute_graphql(query, variables, headers=auth_headers)`.
+4. Do NOT import os, httpx, or read env vars in the test — conftest.py handles all of that.
+5. The ONLY imports needed are `import pytest`, `from conftest import execute_graphql`, and any standard library types used in assertions. Always include `from conftest import execute_graphql`.
+6. Add meaningful assertions beyond just checking that `errors` is empty.
+7. Generate realistic test data — no placeholders or TODO/FIXME comments.
+8. Generate valid GraphQL syntax, never hardcode URLs or sensitive data.
+9. Function name in test_code must start with 'test_' so pytest can discover it.
 
-Output test_code as a complete, ready-to-run pytest function with all imports included."""
+Example test structure:
+```python
+import pytest
+from conftest import execute_graphql
+
+@pytest.mark.parametrize('param', ['value'])
+def test_some_operation(param, auth_headers):
+    query = '''
+    mutation SomeOperation($input: SomeInput!) {
+        someOperation(input: $input) {
+            result { id }
+            errors { field message }
+        }
+    }
+    '''
+    variables = {'input': {'field': param}}
+    response_data = execute_graphql(query, variables, headers=auth_headers)
+    data = response_data.get('data', {}).get('someOperation', {})
+    errors = data.get('errors', [])
+    assert len(errors) == 0, f'Errors: {errors}'
+```
+
+Output test_code as a complete, ready-to-run pytest function following this exact pattern."""
 
     def __init__(
         self,
@@ -98,6 +117,9 @@ Output test_code as a complete, ready-to-run pytest function with all imports in
                 temperature=0.2,
             )
 
+            raw_content = response.choices[0].message.content
+            logger.warning(f"Raw LLM response for {operation.name}:\n{raw_content}")
+
             test_case = response.choices[0].message.parsed
             if not test_case:
                 raise ValueError("LLM returned null test case")
@@ -126,6 +148,8 @@ Output test_code as a complete, ready-to-run pytest function with all imports in
 
         # Sanitize test name to valid Python filename
         safe_name = test_case.test_name.replace("-", "_")
+        if not safe_name.startswith("test_"):
+            safe_name = f"test_{safe_name}"
         test_file = output_dir / f"{safe_name}.py"
 
         try:
@@ -160,6 +184,63 @@ Output test_code as a complete, ready-to-run pytest function with all imports in
         except Exception as e:
             logger.warning(f"Error getting type info for {type_name}: {e}")
             return f"Error retrieving type info: {str(e)}"
+
+    def _extract_base_type_name(self, type_obj: dict) -> Optional[str]:
+        """Extract the bare type name from a nested type structure (strips NON_NULL/LIST wrappers)."""
+        if not type_obj:
+            return None
+        name = type_obj.get("name")
+        if name:
+            return name
+        of_type = type_obj.get("ofType")
+        if of_type:
+            return self._extract_base_type_name(of_type)
+        return None
+
+    def _build_return_type_info(self, return_type_name: str) -> str:
+        """Introspect the return type and describe its structure for the LLM.
+
+        Tells the LLM whether sub-selections are allowed and which fields exist,
+        preventing it from guessing wrong (e.g. adding { id } on an ENUM).
+        """
+        clean_name = return_type_name.replace("!", "").replace("[", "").replace("]", "")
+        type_def = self.schema_analyzer.get_type_definition(clean_name)
+        if not type_def:
+            return f"**Return Type**: {return_type_name}"
+
+        kind = type_def.get("kind", "UNKNOWN")
+
+        if kind in ("SCALAR", "ENUM"):
+            return (
+                f"**Return Type**: {return_type_name} (kind: {kind})\n"
+                f"IMPORTANT: {kind} types must NOT have sub-selections. "
+                f"Write the field name only — no `{{ }}` after it."
+            )
+
+        if kind == "OBJECT":
+            fields = type_def.get("fields") or []
+            lines = [f"**Return Type**: {return_type_name} (kind: OBJECT)", "Selectable fields:"]
+            for field in fields:
+                field_type_str = self._extract_full_type_string(field.get("type", {}))
+                base_name = self._extract_base_type_name(field.get("type", {}))
+                field_type_def = self.schema_analyzer.get_type_definition(base_name) if base_name else None
+                field_kind = field_type_def.get("kind", "") if field_type_def else ""
+                if field_kind in ("SCALAR", "ENUM"):
+                    note = f"({field_type_str}) — scalar/enum, no sub-selection"
+                elif field_kind in ("OBJECT", "INTERFACE", "UNION"):
+                    note = f"({field_type_str}) — object, needs sub-selection {{ ... }}"
+                else:
+                    note = f"({field_type_str})"
+                lines.append(f"  - {field.get('name')}: {note}")
+            return "\n".join(lines)
+
+        if kind in ("UNION", "INTERFACE"):
+            return (
+                f"**Return Type**: {return_type_name} (kind: {kind})\n"
+                f"Use inline fragments (`... on TypeName {{ fields }}`) to select fields."
+            )
+
+        return f"**Return Type**: {return_type_name} (kind: {kind})"
 
     def _extract_nested_input_type(self, type_obj: dict) -> Optional[str]:
         """Extract the first INPUT_OBJECT type found in a nested type structure.
@@ -254,11 +335,13 @@ Output test_code as a complete, ready-to-run pytest function with all imports in
                         if nested_type and nested_type not in visited:
                             types_to_destructure.add(nested_type)
 
+        return_type_info = self._build_return_type_info(operation.return_type)
+
         return f"""Generate a pytest test case for the following Saleor GraphQL operation.
 
 **Operation Name**: {operation.name}
 **Type**: {operation.type_}
-**Return Type**: {operation.return_type}
+{return_type_info}
 **Description**: {operation.description or "No description provided"}
 
 {args_description}{type_details}
@@ -266,12 +349,4 @@ Output test_code as a complete, ready-to-run pytest function with all imports in
 **Target GraphQL Endpoint**: {self.graphql_url}
 
 Create a test that calls this operation with realistic variables and verifies the response.
-Return your test as a JSON object matching this structure:
-{{
-  "test_name": "snake_case_name",
-  "description": "what this test does",
-  "graphql_query": "the full GraphQL query/mutation",
-  "variables": {{}},
-  "assertions": ["assertion 1", "assertion 2"],
-  "test_code": "complete pytest function with imports"
-}}"""
+"""

@@ -1,23 +1,11 @@
 import os
-import json
 import httpx
 import pytest
 
-SALEOR_GRAPHQL_URL = os.getenv(
-    "SALEOR_GRAPHQL_URL", "http://localhost:8000/graphql/"
-)
+from conftest import execute_graphql, SALEOR_GRAPHQL_URL
 
-# Helper to execute a GraphQL operation
-def execute_graphql(query: str, variables: dict, token: str = None):
-    headers = {"Content-Type": "application/json"}
-    if token:
-        headers["Authorization"] = f"JWT {token}"
-    payload = {"query": query, "variables": variables}
-    response = httpx.post(SALEOR_GRAPHQL_URL, headers=headers, json=payload, timeout=30.0)
-    response.raise_for_status()
-    return response
+SALEOR_CHANNEL_ID = os.getenv("SALEOR_CHANNEL_ID", "Q2hhbm5lbDox")
 
-# Helper to create a draft order (requires MANAGE_ORDERS permission)
 CREATE_DRAFT_ORDER_MUTATION = """
 mutation CreateDraftOrder($input: DraftOrderCreateInput!) {
   draftOrderCreate(input: $input) {
@@ -32,76 +20,75 @@ mutation CreateDraftOrder($input: DraftOrderCreateInput!) {
 }
 """
 
-@pytest.fixture(scope="module")
-def auth_token():
-    """Obtain a JWT token with MANAGE_ORDERS permission.
-    Adjust this fixture to match your authentication flow.
-    """
-    # Example: login mutation – replace with real credentials
-    login_mutation = """
-    mutation TokenCreate($email: String!, $password: String!) {
-      tokenCreate(email: $email, password: $password) {
-        token
-        errors {
-          field
-          message
-        }
+LIST_DRAFT_ORDERS_QUERY = """
+query DraftOrders($first: Int) {
+  draftOrders(first: $first) {
+    edges {
+      node {
+        id
       }
     }
-    """
-    credentials = {
-        "email": os.getenv("SALEOR_TEST_USER_EMAIL", "admin@example.com"),
-        "password": os.getenv("SALEOR_TEST_USER_PASSWORD", "admin")
-    }
-    resp = execute_graphql(login_mutation, credentials)
-    data = resp.json()["data"]["tokenCreate"]
-    assert data["errors"] == [], f"Login failed: {data['errors']}"
-    return data["token"]
+  }
+}
+"""
 
-def test_draft_order_bulk_delete(auth_token):
-    """Create a draft order, then delete it using draftOrderBulkDelete mutation.
-    The test asserts that the deletion count is 1 and no errors are returned.
-    """
-    # 1. Create a draft order
-    create_variables = {
-        "input": {
-            "userEmail": "customer@example.com",
-            "billingAddress": {
-                "firstName": "John",
-                "lastName": "Doe",
-                "streetAddress1": "123 Main St",
-                "city": "Metropolis",
-                "postalCode": "12345",
-                "country": "US"
-            },
-            "lines": []
-        }
+DELETE_DRAFT_ORDERS_MUTATION = """
+mutation DraftOrderBulkDelete($ids: [ID!]!) {
+  draftOrderBulkDelete(ids: $ids) {
+    count
+    errors {
+      field
+      message
     }
-    create_resp = execute_graphql(CREATE_DRAFT_ORDER_MUTATION, create_variables, token=auth_token)
-    create_json = create_resp.json()
-    assert create_resp.status_code == 200
-    assert "errors" not in create_json
-    draft_order_data = create_json["data"]["draftOrderCreate"]
-    assert draft_order_data["errors"] == []
-    order_id = draft_order_data["order"]["id"]
+  }
+}
+"""
 
-    # 2. Delete the draft order using bulk delete
-    delete_variables = {"ids": [order_id]}
-    delete_query = """
-    mutation DraftOrderBulkDelete($ids: [ID!]!) {
-      draftOrderBulkDelete(ids: $ids) {
-        count
-        errors {
-          field
-          message
+
+def test_draft_order_bulk_delete(auth_headers):
+    """Create two draft orders, delete them with bulkDelete, and ensure they are gone."""
+    # Step 1: Create two draft orders
+    created_ids = []
+    for _ in range(2):
+        create_input = {
+            "input": {
+                "userEmail": "test@example.com",
+                "channelId": SALEOR_CHANNEL_ID,
+                "lines": [],
+            }
         }
-      }
-    }
-    """
-    delete_resp = execute_graphql(delete_query, delete_variables, token=auth_token)
-    assert delete_resp.status_code == 200
-    resp_json = delete_resp.json()
-    assert "errors" not in resp_json
-    bulk_delete_data = resp_json["data"]["draftOrderBulkDelete"]
-    assert bulk_delete_data["errors"] == []
-    assert bulk_delete_data["count"] == 1
+        result = execute_graphql(CREATE_DRAFT_ORDER_MUTATION, create_input, headers=auth_headers)
+        assert "errors" not in result, f"GraphQL errors on create: {result.get('errors')}"
+        draft_order = result.get("data", {}).get("draftOrderCreate", {})
+        assert draft_order.get("errors") == [], f"Creation errors: {draft_order.get('errors')}"
+        created_ids.append(draft_order["order"]["id"])
+
+    # Verify the orders appear in the list
+    list_result = execute_graphql(LIST_DRAFT_ORDERS_QUERY, {"first": 10}, headers=auth_headers)
+    assert "errors" not in list_result, f"GraphQL errors on list: {list_result.get('errors')}"
+    existing_ids = [edge["node"]["id"] for edge in list_result["data"]["draftOrders"]["edges"]]
+    for cid in created_ids:
+        assert cid in existing_ids, f"Created draft order {cid} not found in list"
+
+    # Step 2: Bulk delete
+    delete_response = httpx.post(
+        SALEOR_GRAPHQL_URL,
+        json={"query": DELETE_DRAFT_ORDERS_MUTATION, "variables": {"ids": created_ids}},
+        headers=auth_headers,
+        timeout=10.0,
+    )
+    assert delete_response.status_code == 200, f"Unexpected status {delete_response.status_code}: {delete_response.text}"
+    delete_result = delete_response.json()
+    assert "errors" not in delete_result, f"GraphQL errors on delete: {delete_result.get('errors')}"
+    bulk_data = delete_result["data"]["draftOrderBulkDelete"]
+    assert bulk_data["errors"] == [], f"Bulk delete returned errors: {bulk_data['errors']}"
+    assert bulk_data["count"] == len(created_ids), (
+        f"Expected delete count {len(created_ids)} but got {bulk_data['count']}"
+    )
+
+    # Step 3: Ensure the orders are no longer present
+    post_delete_list = execute_graphql(LIST_DRAFT_ORDERS_QUERY, {"first": 10}, headers=auth_headers)
+    remaining_ids = [edge["node"]["id"] for edge in post_delete_list["data"]["draftOrders"]["edges"]]
+    assert all(cid not in remaining_ids for cid in created_ids), (
+        f"Some draft orders were not deleted: {[d for d in created_ids if d in remaining_ids]}"
+    )

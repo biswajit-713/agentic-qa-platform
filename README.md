@@ -24,7 +24,10 @@ podman compose up -d
 # 4. Generate 10 tests from uncovered operations
 uv run python -m src.agent.generate_command --count 10
 
-# 5. View report
+# 5. Run the autonomous agent loop
+uv run python -m src.agent run --diff HEAD~3..HEAD --test-dir generated_tests/api --state .agent_state.json --report reports/agent_run_report.json
+
+# 6. View report
 cat reports/generation_report.json
 ```
 

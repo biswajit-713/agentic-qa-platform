@@ -465,16 +465,18 @@ appropriate judgements.
 
 ---
 
-#### Day 10 — Full Agent Loop
+#### Day 10 — Full Agent Loop ✅ COMPLETED (2026-05-07)
 
 **Outcome**: Single entry point: detect change → analyze → generate → run → report. No human steps in between.
 
 **Tasks**:
-- [ ] Build `src/agent/core.py` — the main agent orchestrator
-- [ ] Entry point: `python -m agent run --diff HEAD~3..HEAD`
-- [ ] Full cycle: diff → risk score → targeted test generation → run → quality gate check → report
-- [ ] Agent persists state between runs (what was generated, what passed last time)
-- [ ] Commit: "feat: autonomous agent loop v1"
+- [x] Build `src/agent/core.py` — the main agent orchestrator
+- [x] Entry point: `python -m src.agent run --diff HEAD~3..HEAD`
+- [x] Full cycle: diff → risk score → targeted test generation → run → quality gate check → report
+- [x] Agent persists state between runs (what was generated, what passed last time)
+- [x] Commit: "feat: autonomous agent loop v1"
+
+**Completed**: src/agent/core.py wires all Week 2 modules. AgentState (.agent_state.json) tracks test history for regression detection. Quality gate fails on regressions or CRITICAL-op test failures. analyze_diff_text made @staticmethod. 24 new tests, all 103 passing.
 
 **Claude Code prompt for Day 10**:
 ```

@@ -185,6 +185,110 @@ test_generate_command.py     ✅ 5 tests
 Total: 40 tests, all passing
 ```
 
+---
+
+## Week 2: Autonomous Agent Loop
+
+### Overview
+
+Week 2 adds autonomous decision-making. The agent reacts to a git diff, scores risk with an LLM, generates tests only for HIGH/CRITICAL operations, runs them, detects regressions against previous runs, and enforces a quality gate.
+
+```
+git diff <range>
+      │
+      ▼
+ DiffAnalyzer.analyze_diff_text()  ← @staticmethod, no side effects
+      │
+      ▼  DiffAnalysis (changed_files, affected_operations)
+      │
+      ▼
+ RiskScorer.score()  ──LLM──→ RiskAssessment
+      │                        (overall_risk, operation_risks[])
+      ▼
+ [HIGH/CRITICAL ops only]
+      │
+      ▼
+ fetch_schema_ops()  ──introspection──→ {name: GraphQLOperation}
+      │
+      ▼
+ generate_targeted_tests()
+      │  ApiTestGenerator.generate() + write_test() per op
+      ▼
+ generated_tests/api/*.py
+      │
+      ▼
+ run_tests(test_dir)  ──→  PytestRunResult
+      │
+      ├── detect_regressions(result, AgentState)
+      │         ← loads .agent_state.json (previous run results)
+      │
+      ├── check_quality_gate(risk, result, regressions)
+      │         FAIL if: regressions exist OR CRITICAL-op test fails
+      │
+      ├── save_state(.agent_state.json)
+      │
+      └── RunReport (JSON)
+```
+
+### Module Responsibilities
+
+| Module | File | Responsibility | Key Output |
+|--------|------|-----------------|------------|
+| **DiffAnalyzer** | `src/analyzers/diff_analyzer.py` | Parse unified diff → GraphQL operation names | `DiffAnalysis` |
+| **RiskScorer** | `src/analyzers/risk_scorer.py` | LLM-powered risk level per operation | `RiskAssessment` |
+| **AgentCore** | `src/agent/core.py` | Orchestrate full loop + quality gate | `RunReport` |
+
+### State Persistence
+
+`AgentState` is written to `.agent_state.json` after every run:
+
+```json
+{
+  "last_run_timestamp": "2026-05-07T10:00:00+00:00",
+  "last_run_results": {
+    "test_checkout_complete": "passed",
+    "test_product_create": "failed"
+  }
+}
+```
+
+Used by `detect_regressions()` on the next run to identify tests that previously passed but now fail.
+
+### Quality Gate Logic
+
+```
+PASS if:
+  - no regressions (tests that were passing before and now fail)
+  - no CRITICAL-operation tests currently failing
+
+FAIL otherwise → CLI exits with code 1 (CI-safe)
+```
+
+### Usage
+
+```bash
+uv run python -m src.agent run --diff HEAD~3..HEAD --test-dir generated_tests/api --state .agent_state.json --report reports/agent_run_report.json
+```
+
+### Test Coverage
+
+```
+test_agent_core.py    ✅ 24 tests (get_git_diff, load/save_state,
+                                   detect_regressions, check_quality_gate,
+                                   generate_targeted_tests, run_loop)
+─────────────────────────────────────
+Total Week 2: 103 tests, all passing
+```
+
+### Week 2 — Level 2 Autonomy
+
+**What the human does**: Push a commit (or provide a diff range)
+**What the system does**: Analyze change → assess risk → generate targeted tests → run → report
+
+This is **Level 2 Autonomy**: the agent makes decisions (what to test, how much risk, whether to pass the gate) without human input.
+
+---
+
 ### Week 1 — Level 1 Autonomy
 
 **What the human does**: Invoke one command (`python -m src.agent.generate_command`)

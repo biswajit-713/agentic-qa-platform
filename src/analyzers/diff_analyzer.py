@@ -209,7 +209,8 @@ class DiffAnalyzer:
     def __init__(self, repo_path: Optional[Path] = None) -> None:
         self._repo_path = repo_path or Path(".")
 
-    def analyze_diff_text(self, diff_text: str) -> DiffAnalysis:
+    @staticmethod
+    def analyze_diff_text(diff_text: str) -> DiffAnalysis:
         """Parse an already-fetched diff string and return a DiffAnalysis."""
         changes = _parse_diff(diff_text)
         affected, untraced = _map_to_operations(changes)

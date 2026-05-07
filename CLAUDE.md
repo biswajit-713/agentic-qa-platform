@@ -26,6 +26,7 @@ for Saleor (Python/Django e-commerce). Portfolio project for Agentic QA Architec
 
 ## Built So Far
 
+- [2026-05-07] Day 10: Autonomous agent loop complete. src/agent/core.py wires diff → risk → generate (HIGH/CRITICAL only) → run → regression detection → quality gate → report. AgentState persists test history in .agent_state.json. Entry point: python -m src.agent run --diff HEAD~3..HEAD. 24 new tests, all 103 passing.
 - [2026-05-07] Day 9: Risk scorer complete. LLM-powered RiskAssessment using OpenRouter, risk_config.yml rubric, RiskLevel (CRITICAL/HIGH/MEDIUM/LOW) per operation with rationale and suggested_test_focus. 15 new tests, all 79 passing.
 - [2026-05-05] Day 8: Git diff analyzer complete. Parses unified diff into CodeChange objects, maps mutations/resolvers/models to GraphQL operations, handles added/deleted/renamed files. 23 new tests, all 64 passing.
 - [2026-05-03] Day 7: Week 1 orchestrator complete. GenerateCommand (typer CLI) wires schema → coverage → generate → run → report. JSON reporting with before/after coverage deltas. 5 new tests, all 40 tests passing. docs/architecture.md + README.md complete.

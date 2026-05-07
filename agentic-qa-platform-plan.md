@@ -395,16 +395,18 @@ This module drives what the agent generates next.
 
 ---
 
-#### Day 8 — Git Diff Analyzer
+#### Day 8 — Git Diff Analyzer ✅ COMPLETED (2026-05-05)
 
 **Outcome**: Module that parses a git diff and maps changed code to affected API operations.
 
 **Tasks**:
-- [ ] Build `src/analyzers/diff_analyzer.py`
-- [ ] Parses `git diff <range>` output into structured `CodeChange` objects
-- [ ] Maps changed Python files → affected Django views/resolvers → GraphQL operations
-- [ ] Returns `DiffAnalysis` with changed files, affected operations, change types
-- [ ] Commit: "feat: git diff analyzer"
+- [x] Build `src/analyzers/diff_analyzer.py`
+- [x] Parses `git diff <range>` output into structured `CodeChange` objects
+- [x] Maps changed Python files → affected Django views/resolvers → GraphQL operations
+- [x] Returns `DiffAnalysis` with changed files, affected operations, change types
+- [x] Commit: "feat: git diff analyzer"
+
+**Completed**: Parses unified diff into CodeChange objects, maps mutations/resolvers/models to GraphQL operations, handles added/deleted/renamed files. 23 new tests, all 64 passing.
 
 **Claude Code prompt for Day 8**:
 ```
@@ -427,16 +429,18 @@ Use Pydantic v2 for all models. Include unit tests with sample diff fixtures.
 
 ---
 
-#### Day 9 — Risk Scorer
+#### Day 9 — Risk Scorer ✅ COMPLETED (2026-05-07)
 
 **Outcome**: Agent uses OpenRouter to assess risk level of each code change and prioritize testing.
 
 **Tasks**:
-- [ ] Build `src/analyzers/risk_scorer.py`
-- [ ] OpenRouter analyzes the diff + affected operations → assigns risk score + rationale
-- [ ] Risk levels: CRITICAL, HIGH, MEDIUM, LOW with explanations
-- [ ] Output informs which tests to generate first
-- [ ] Commit: "feat: LLM-powered risk scorer"
+- [x] Build `src/analyzers/risk_scorer.py`
+- [x] OpenRouter analyzes the diff + affected operations → assigns risk score + rationale
+- [x] Risk levels: CRITICAL, HIGH, MEDIUM, LOW with explanations
+- [x] Output informs which tests to generate first
+- [x] Commit: "feat: LLM-powered risk scorer"
+
+**Completed**: LLM-powered RiskAssessment using OpenRouter, risk_config.yml rubric, RiskLevel (CRITICAL/HIGH/MEDIUM/LOW) per operation with rationale and suggested_test_focus. 15 new tests, all 79 passing.
 
 **Claude Code prompt for Day 9**:
 ```

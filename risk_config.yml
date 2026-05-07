@@ -1,0 +1,123 @@
+# risk_config.yml
+#
+# Defines the risk rubric for the LLM-powered risk scorer.
+# Customize this file for your own GraphQL API — the LLM uses these definitions
+# to classify risk level for each changed operation.
+#
+# Risk levels (highest → lowest):
+#   CRITICAL — direct financial, authentication, or data-integrity impact
+#   HIGH     — core user journey or inventory impact; failures block purchases
+#   MEDIUM   — degraded UX but recoverable; no financial or auth exposure
+#   LOW      — non-functional, display-only, or logging changes
+
+risk_levels:
+  CRITICAL:
+    description: >
+      Direct financial impact (revenue loss, double-charge, failed refund),
+      authentication/authorization bypass, or irreversible data corruption.
+      A bug here causes immediate, measurable harm to users or the business.
+    keywords:
+      - payment
+      - charge
+      - refund
+      - billing
+      - invoice
+      - token
+      - auth
+      - password
+      - permission
+      - account
+      - delete
+      - purge
+    operation_patterns:
+      - "*Payment*"
+      - "*Charge*"
+      - "*Refund*"
+      - "*Token*"
+      - "*Auth*"
+      - "*Password*"
+      - "*AccountDelete*"
+      - "*OrderCreate*"
+      - "*OrderComplete*"
+    recommended_test_count: 5
+
+  HIGH:
+    description: >
+      Core purchase flow or inventory management. Failures block a user from
+      completing a purchase or cause stock discrepancies.
+    keywords:
+      - checkout
+      - cart
+      - order
+      - inventory
+      - stock
+      - fulfillment
+      - shipping
+      - discount
+      - voucher
+      - warehouse
+    operation_patterns:
+      - "*Checkout*"
+      - "*Cart*"
+      - "*Order*"
+      - "*Fulfillment*"
+      - "*Stock*"
+      - "*Inventory*"
+      - "*Warehouse*"
+      - "*Voucher*"
+    recommended_test_count: 3
+
+  MEDIUM:
+    description: >
+      User experience operations — degraded but recoverable. No financial or
+      auth exposure. Typically profile, search, address, or catalogue edits.
+    keywords:
+      - profile
+      - address
+      - search
+      - filter
+      - wishlist
+      - review
+      - category
+      - collection
+      - attribute
+      - metadata
+    operation_patterns:
+      - "*Address*"
+      - "*Profile*"
+      - "*Search*"
+      - "*Category*"
+      - "*Collection*"
+      - "*Attribute*"
+      - "*Metadata*"
+    recommended_test_count: 2
+
+  LOW:
+    description: >
+      Non-functional or display-only changes. Affects labels, descriptions,
+      images, or logging. No impact on core flows even if broken.
+    keywords:
+      - listing
+      - description
+      - image
+      - thumbnail
+      - label
+      - translation
+      - log
+      - audit
+      - notification
+      - webhook
+    operation_patterns:
+      - "*Translation*"
+      - "*Thumbnail*"
+      - "*Notification*"
+      - "*Webhook*"
+      - "*AuditLog*"
+    recommended_test_count: 1
+
+# LLM model to use for risk scoring
+model: "openai/gpt-4o-mini-search-preview:free"
+
+# When an operation name doesn't match any pattern above, the LLM falls back
+# to its own reasoning guided by the descriptions above.
+fallback_level: MEDIUM

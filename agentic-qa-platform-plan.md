@@ -562,7 +562,7 @@ on the storefront product listing page via Playwright."
 The generator should:
 1. Accept a scenario_description: str
 2. Use OpenRouter to generate a pytest test that:
-   - Uses httpx for GraphQL API calls (with auth token from env)
+   - Uses sync httpx for GraphQL API calls (with auth token from env)
    - Uses Playwright for UI steps
    - Has clear setup/action/assertion phases
    - Cleans up created data after the test (teardown)

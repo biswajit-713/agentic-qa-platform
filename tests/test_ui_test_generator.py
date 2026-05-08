@@ -164,6 +164,96 @@ class TestWriteTest:
             os.chdir(original_dir)
 
 
+class TestPageContextInjection:
+    """Tests that page_context is correctly injected into the LLM prompt."""
+
+    def _mock_response(self, sample_test_case):
+        mock_response = MagicMock()
+        mock_response.choices[0].message.parsed = sample_test_case
+        mock_response.choices[0].message.content = "{}"
+        return mock_response
+
+    def _get_user_message(self, mock_parse):
+        call_kwargs = mock_parse.call_args
+        messages = call_kwargs.kwargs.get("messages") or call_kwargs[1].get("messages") or call_kwargs[0][1]
+        return next(m["content"] for m in messages if m["role"] == "user")
+
+    def test_prompt_without_context_has_no_accessibility_tree(
+        self, generator: UITestGenerator, sample_test_case: UITestCase
+    ):
+        with patch.object(
+            generator.client.beta.chat.completions, "parse", return_value=self._mock_response(sample_test_case)
+        ) as mock_parse:
+            generator.generate("search flow", page_context=None)
+
+        user_msg = self._get_user_message(mock_parse)
+        assert "accessibility tree" not in user_msg.lower()
+
+    def test_prompt_with_context_includes_accessibility_tree(
+        self, generator: UITestGenerator, sample_test_case: UITestCase
+    ):
+        context = {"role": "main", "children": [{"role": "button", "name": "Add to cart"}]}
+
+        with patch.object(
+            generator.client.beta.chat.completions, "parse", return_value=self._mock_response(sample_test_case)
+        ) as mock_parse:
+            generator.generate("search flow", page_context=context)
+
+        user_msg = self._get_user_message(mock_parse)
+        assert "accessibility tree" in user_msg.lower()
+        assert "Add to cart" in user_msg
+
+    def test_prompt_with_context_instructs_get_by_role(
+        self, generator: UITestGenerator, sample_test_case: UITestCase
+    ):
+        context = {"role": "button", "name": "Checkout"}
+
+        with patch.object(
+            generator.client.beta.chat.completions, "parse", return_value=self._mock_response(sample_test_case)
+        ) as mock_parse:
+            generator.generate("checkout flow", page_context=context)
+
+        user_msg = self._get_user_message(mock_parse)
+        assert "get_by_role" in user_msg
+
+    def test_generate_from_live_page_single_url(
+        self, generator: UITestGenerator, sample_test_case: UITestCase
+    ):
+        fake_context = {"role": "button", "name": "Search"}
+
+        with patch("src.generators.ui_test_generator.PageContextExtractor") as MockExtractor:
+            MockExtractor.return_value.extract.return_value = fake_context
+            with patch.object(
+                generator.client.beta.chat.completions,
+                "parse",
+                return_value=self._mock_response(sample_test_case),
+            ) as mock_parse:
+                result = generator.generate_from_live_page("search flow", ["http://localhost:3000"])
+
+        MockExtractor.return_value.extract.assert_called_once_with("http://localhost:3000")
+        assert isinstance(result, UITestCase)
+
+    def test_generate_from_live_page_multiple_urls_uses_extract_flow(
+        self, generator: UITestGenerator, sample_test_case: UITestCase
+    ):
+        fake_context = {
+            "http://localhost:3000": {"role": "button", "name": "Search"},
+            "http://localhost:3000/cart": {"role": "button", "name": "Checkout"},
+        }
+        urls = ["http://localhost:3000", "http://localhost:3000/cart"]
+
+        with patch("src.generators.ui_test_generator.PageContextExtractor") as MockExtractor:
+            MockExtractor.return_value.extract_flow.return_value = fake_context
+            with patch.object(
+                generator.client.beta.chat.completions,
+                "parse",
+                return_value=self._mock_response(sample_test_case),
+            ):
+                generator.generate_from_live_page("cart flow", urls)
+
+        MockExtractor.return_value.extract_flow.assert_called_once_with(urls)
+
+
 class TestFlowsConstant:
     def test_flows_contains_three_entries(self):
         assert len(FLOWS) == 3

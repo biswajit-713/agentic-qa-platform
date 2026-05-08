@@ -5,6 +5,7 @@ Generates Playwright async Python tests for Saleor's React storefront using Open
 Tests target the storefront at localhost:3000 and cover critical user flows.
 """
 
+import json
 import logging
 import re
 from pathlib import Path
@@ -14,6 +15,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from openai import OpenAI
 
 from src.config.settings import get_settings
+from src.analyzers.page_context_extractor import PageContextExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -89,11 +91,13 @@ async def test_example_flow(page: Page):
             base_url=self.openrouter_base_url,
         )
 
-    def generate(self, flow_name: str) -> UITestCase:
+    def generate(self, flow_name: str, page_context: Optional[dict] = None) -> UITestCase:
         """Generate a Playwright test for the given user flow description.
 
         Args:
             flow_name: Natural language description of the flow to test.
+            page_context: Optional pruned accessibility tree from PageContextExtractor.
+                          When provided, the LLM uses real selectors instead of guesses.
 
         Returns:
             UITestCase with the generated test code.
@@ -101,7 +105,7 @@ async def test_example_flow(page: Page):
         Raises:
             ValueError: If the LLM returns an invalid or empty response.
         """
-        user_prompt = self._build_prompt(flow_name)
+        user_prompt = self._build_prompt(flow_name, page_context)
 
         try:
             response = self.client.beta.chat.completions.parse(
@@ -156,20 +160,41 @@ async def test_example_flow(page: Page):
             logger.error(f"Failed to write UI test file {test_file}: {e}")
             raise
 
-    def generate_and_write(self, flow_name: str) -> Path:
+    def generate_and_write(self, flow_name: str, page_context: Optional[dict] = None) -> Path:
         """Generate a test for a flow and write it to disk.
 
         Args:
             flow_name: Natural language description of the user flow.
+            page_context: Optional accessibility tree from PageContextExtractor.
 
         Returns:
             Path of the written test file.
         """
-        test_case = self.generate(flow_name)
+        test_case = self.generate(flow_name, page_context)
         return self.write_test(test_case)
 
-    def _build_prompt(self, flow_name: str) -> str:
-        return f"""Generate a complete async Playwright test for the following Saleor storefront user flow.
+    def generate_from_live_page(self, flow_name: str, urls: list[str]) -> UITestCase:
+        """Visit pages, extract live accessibility context, then generate the test.
+
+        Use this for any site the LLM has not been trained on. The extractor
+        snapshots the real DOM so the LLM grounds selectors in actual elements.
+
+        Args:
+            flow_name: Natural language description of the flow.
+            urls: One URL per step in the flow (e.g. [home, product, cart]).
+
+        Returns:
+            UITestCase grounded in the live page structure.
+        """
+        extractor = PageContextExtractor()
+        if len(urls) == 1:
+            page_context = extractor.extract(urls[0])
+        else:
+            page_context = extractor.extract_flow(urls)
+        return self.generate(flow_name, page_context)
+
+    def _build_prompt(self, flow_name: str, page_context: Optional[dict] = None) -> str:
+        prompt = f"""Generate a complete async Playwright test for the following Saleor storefront user flow.
 
 **Storefront URL**: {self.storefront_url}
 **Framework**: React / Next.js e-commerce app (Saleor storefront)
@@ -181,3 +206,14 @@ The test should:
 - Use realistic selectors that would work on a standard Saleor storefront
 - Include step comments for readability
 """
+        if page_context:
+            prompt += f"""
+**Live page accessibility tree** (ground your selectors in these real elements):
+```json
+{json.dumps(page_context, indent=2)}
+```
+
+Use `get_by_role`, `get_by_label`, or `get_by_text` with the names visible in the tree above.
+Prefer these over CSS class selectors or XPaths.
+"""
+        return prompt

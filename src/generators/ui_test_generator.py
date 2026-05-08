@@ -22,9 +22,11 @@ logger = logging.getLogger(__name__)
 STOREFRONT_URL = "http://localhost:3000"
 
 FLOWS = [
-    "search for a product by name and verify results",
-    "add a product to cart and verify cart count",
-    "navigate through checkout steps to payment page",
+    "homepage renders with navigation, hero section, and footer visible",
+    "navigating to an invalid product URL shows a 404 or not-found page",
+    "search input is accessible and responds to keyboard input without requiring results",
+    "mobile viewport: hamburger menu opens and nav links are reachable",
+    "cart page renders an empty state message when no items have been added",
 ]
 
 

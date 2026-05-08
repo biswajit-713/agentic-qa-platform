@@ -34,7 +34,7 @@ def update_claude_md(message: str) -> bool:
         return False
 
     # Get current timestamp
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+    timestamp = datetime.now().strftime("%Y-%m-%d")
 
     # Create new entry
     new_entry = f"- [{timestamp}] {message}"

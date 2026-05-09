@@ -120,10 +120,82 @@ All tests use mocking and temporary directories — no external services require
 - **CLI**: typer (for Week 1 command)
 - **SUT**: Saleor GraphQL (Docker-compose)
 
+## Week 2: Autonomous Agent Loop (Level 2 Demo)
+
+**Goal**: One command watches a code change and autonomously generates targeted tests, runs them, and enforces a quality gate.
+
+### Prerequisites
+
+```bash
+# Saleor must be running (or mock mode works without it)
+podman compose up -d
+
+# Verify health
+uv run python scripts/health_check.py
+```
+
+### Run the Level 2 Demo
+
+```bash
+# Simulate a code change by making a commit, then run the agent against it:
+git commit --allow-empty -m "chore: simulate change"
+uv run python -m src.agent run --diff HEAD~1..HEAD
+```
+
+The agent will:
+1. Parse the git diff for affected GraphQL operations
+2. Score risk per-operation via LLM (falls back to MEDIUM if unavailable)
+3. Generate new tests for HIGH/CRITICAL operations only
+4. Run the full test suite and detect regressions against the previous run
+5. Enforce a quality gate (exit 1 on regressions or CRITICAL test failures)
+6. Write `reports/latest.json` (machine-readable) and `reports/latest.html` (visual)
+
+**Example output:**
+```
+======================================================================
+AGENT RUN REPORT
+======================================================================
+Timestamp:           2026-05-09T10:30:00+00:00
+Diff Range:          HEAD~1..HEAD
+Overall Risk:        HIGH
+Recommended Tests:   3
+New Tests Generated: 2
+Generation Failures: 0
+
+TEST EXECUTION
+  Passed:  188
+  Failed:  0
+  Errors:  0
+  Total:   188
+  Time:    4.21s
+
+Regressions:         0
+Quality Gate:        PASS
+
+Report saved to reports/agent_run_report.json
+======================================================================
+```
+
+### Edge Cases Handled
+
+| Scenario | Behavior |
+|---|---|
+| Empty diff (no source changes) | Logs "no changes detected", produces LOW-risk report |
+| Saleor unreachable | Schema fetch silently skipped; generation failures recorded in report |
+| LLM rate limit during risk scoring | Falls back to MEDIUM risk; loop continues |
+| LLM rate limit during test generation | Per-operation failure recorded; other operations continue |
+| Regression detected | Quality gate fails, exit code 1 |
+
+### Demo Flow
+
+See [docs/demo_level2.md](docs/demo_level2.md) for a step-by-step walkthrough with expected output.
+
+---
+
 ## Roadmap
 
 - **Week 1** ✅ LLM test generation from schema
-- **Week 2** 🔄 Autonomous agent (analyze diffs → risk score → generate → run)
+- **Week 2** ✅ Autonomous agent (analyze diffs → risk score → generate → run → quality gate → HTML report)
 - **Week 3** 🔄 Self-healing tests + Jenkins CI + performance testing
 - **Week 4** 🔄 Security testing + extensibility + portfolio docs
 

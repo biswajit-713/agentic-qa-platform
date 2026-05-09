@@ -191,6 +191,20 @@ def check_quality_gate(
     return True
 
 
+def score_risk_with_fallback(diff_analysis: DiffAnalysis) -> RiskAssessment:
+    """Score diff risk, returning a MEDIUM fallback if the LLM call fails (e.g. rate limit)."""
+    try:
+        return RiskScorer().score(diff_analysis)
+    except Exception as e:
+        logger.warning("Risk scoring failed (%s: %s); using MEDIUM fallback", type(e).__name__, e)
+        return RiskAssessment(
+            overall_risk="MEDIUM",
+            rationale=f"Risk scoring unavailable ({type(e).__name__}): {e}",
+            recommended_test_count=0,
+            operation_risks=[],
+        )
+
+
 def run_loop(
     diff_range: str,
     test_dir: str = "generated_tests/api",
@@ -202,6 +216,8 @@ def run_loop(
 
     # Step 1: Diff → affected operations
     diff_text = get_git_diff(diff_range)
+    if not diff_text.strip():
+        logger.info("Empty diff — no source changes detected")
     diff_analysis = DiffAnalyzer.analyze_diff_text(diff_text)
     logger.info(
         "Diff: %d file(s) changed, %d operation(s) affected",
@@ -209,8 +225,8 @@ def run_loop(
         len(diff_analysis.affected_operations),
     )
 
-    # Step 2: Risk scoring
-    risk = RiskScorer().score(diff_analysis)
+    # Step 2: Risk scoring (with fallback for LLM unavailability / rate limits)
+    risk = score_risk_with_fallback(diff_analysis)
     logger.info("Risk: overall=%s, recommended_tests=%d", risk.overall_risk, risk.recommended_test_count)
 
     # Step 3: Load previous state for regression tracking

@@ -116,7 +116,7 @@ risk_levels:
     recommended_test_count: 1
 
 # LLM model to use for risk scoring
-model: "openai/gpt-4o-mini-search-preview:free"
+model: "openai/gpt-oss-20b:free"
 
 # When an operation name doesn't match any pattern above, the LLM falls back
 # to its own reasoning guided by the descriptions above.

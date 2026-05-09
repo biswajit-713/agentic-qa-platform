@@ -30,7 +30,7 @@ class RiskConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     risk_levels: dict[str, dict] = Field(default_factory=dict)
-    model: str = Field(default="openai/gpt-4o-mini-search-preview:free")
+    model: str = Field(default="openai/gpt-oss-20b:free")
     fallback_level: RiskLevel = Field(default="MEDIUM")
 
 

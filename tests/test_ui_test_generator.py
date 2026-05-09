@@ -255,11 +255,11 @@ class TestPageContextInjection:
 
 
 class TestFlowsConstant:
-    def test_flows_contains_three_entries(self):
-        assert len(FLOWS) == 3
+    def test_flows_contains_five_entries(self):
+        assert len(FLOWS) == 5
 
     def test_flows_cover_expected_areas(self):
         flows_text = " ".join(FLOWS).lower()
-        assert "search" in flows_text
         assert "cart" in flows_text
-        assert "checkout" in flows_text
+        assert "homepage" in flows_text
+        assert "keyboard" in flows_text or "accessible" in flows_text

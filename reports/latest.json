@@ -1,0 +1,86 @@
+{
+  "timestamp": "2026-05-09T10:00:00+00:00",
+  "diff_range": "HEAD~3..HEAD",
+  "overall_risk": "HIGH",
+  "recommended_test_count": 5,
+  "new_tests_generated": [
+    "test_product_create",
+    "test_checkout"
+  ],
+  "failed_generations": [
+    {
+      "operation_name": "deleteProduct",
+      "error": "not found in schema"
+    }
+  ],
+  "run_result": {
+    "total": 5,
+    "passed": 4,
+    "failed": 1,
+    "errors": 0,
+    "duration_seconds": 3.14,
+    "test_results": [
+      {
+        "test_name": "generated_tests/api/test_product_create.py::test_product_create",
+        "status": "passed",
+        "duration": 0.42,
+        "error_message": null,
+        "stdout": ""
+      },
+      {
+        "test_name": "generated_tests/ui/test_homepage.py::test_homepage",
+        "status": "passed",
+        "duration": 0.91,
+        "error_message": null,
+        "stdout": ""
+      },
+      {
+        "test_name": "generated_tests/integration/test_cart_api.py::test_cart_api",
+        "status": "passed",
+        "duration": 1.1,
+        "error_message": null,
+        "stdout": ""
+      },
+      {
+        "test_name": "generated_tests/api/test_checkout.py::test_checkout",
+        "status": "passed",
+        "duration": 0.35,
+        "error_message": null,
+        "stdout": ""
+      },
+      {
+        "test_name": "generated_tests/ui/test_mobile_nav.py::test_mobile_nav",
+        "status": "failed",
+        "duration": 0.36,
+        "error_message": "AssertionError: menu not visible",
+        "stdout": ""
+      }
+    ]
+  },
+  "regressions": [],
+  "quality_gate_passed": true,
+  "operation_risks": [
+    {
+      "operation_name": "productCreate",
+      "risk_level": "HIGH",
+      "reason": "Core mutation modified",
+      "suggested_test_focus": [
+        "happy path",
+        "validation"
+      ]
+    },
+    {
+      "operation_name": "checkoutComplete",
+      "risk_level": "CRITICAL",
+      "reason": "Payment flow touched",
+      "suggested_test_focus": [
+        "payment",
+        "stock",
+        "order creation"
+      ]
+    }
+  ],
+  "coverage_before": 38.5,
+  "coverage_after": 42.1,
+  "rationale": "Two HIGH/CRITICAL operations detected in diff. productCreate has 3 mutations touching discount logic. checkoutComplete payment hook modified \u2014 prioritised for test generation."
+}

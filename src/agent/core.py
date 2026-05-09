@@ -20,6 +20,7 @@ from src.analyzers.diff_analyzer import DiffAnalyzer, DiffAnalysis
 from src.analyzers.risk_scorer import RiskScorer, RiskAssessment
 from src.analyzers.schema_analyzer import SchemaAnalyzer, GraphQLOperation
 from src.generators.api_test_generator import ApiTestGenerator
+from src.reporters.report_generator import generate_reports
 from src.runners.pytest_runner import run_tests, PytestRunResult
 
 logger = logging.getLogger(__name__)
@@ -264,6 +265,12 @@ def run_loop(
     report_file.parent.mkdir(parents=True, exist_ok=True)
     report_file.write_text(report.model_dump_json(indent=2))
     logger.info("Report saved to %s", report_path)
+
+    generate_reports(
+        report,
+        output_dir=Path(report_path).parent,
+        rationale=risk.rationale,
+    )
 
     logger.info("=== Agent loop complete | gate=%s ===", "PASS" if gate_passed else "FAIL")
     return report

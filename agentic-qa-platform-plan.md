@@ -615,16 +615,18 @@ The JSON schema should be documented with field descriptions for README referenc
 
 ---
 
-#### Day 14 — Week 2 Integration + Polish
+#### Day 14 — Week 2 Integration + Polish ✅ COMPLETED (2026-05-09)
 
 **Outcome**: Full Level 2 demo works end-to-end. One command, zero manual steps.
 
 **Tasks**:
-- [ ] End-to-end test: simulate a Saleor code change, run the agent, verify report
-- [ ] Handle all edge cases: empty diffs, Saleor unreachable, API rate limits
-- [ ] Update README with Level 2 demo instructions
-- [ ] Record or document the demo flow
-- [ ] Commit: "feat: Week 2 complete — autonomous test agent Level 2"
+- [x] End-to-end test: simulate a Saleor code change, run the agent, verify report
+- [x] Handle all edge cases: empty diffs, Saleor unreachable, API rate limits
+- [x] Update README with Level 2 demo instructions
+- [x] Record or document the demo flow
+- [x] Commit: "feat: Week 2 complete — autonomous test agent Level 2"
+
+**Completed**: score_risk_with_fallback() wraps RiskScorer.score() so LLM rate limits return a MEDIUM fallback instead of crashing the loop. Empty diff detection added with clear log message. 6 new e2e tests cover: empty diff, Saleor unreachable, rate-limit fallback (unit + integration), full HIGH-risk pipeline with test generation, and regression detection across two consecutive runs. README updated with Level 2 demo section, quickstart commands, expected output, and edge-case table. docs/demo_level2.md added with step-by-step walkthrough including deliberate gate-failure scenario. 192 tests passing (186 + 6 new).
 
 ---
 

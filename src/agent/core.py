@@ -3,7 +3,7 @@ src/agent/core.py
 
 Autonomous agent loop: diff → risk score → targeted test generation → run → quality gate → report.
 
-Usage: python -m src.agent run --diff HEAD~3..HEAD
+Usage: python -m src.agent --diff HEAD~3..HEAD
 """
 
 import json
@@ -94,13 +94,13 @@ def save_state(state_file: Path, run_result: PytestRunResult) -> None:
 
 
 def fetch_schema_ops(schema_analyzer: SchemaAnalyzer) -> dict[str, GraphQLOperation]:
-    """Fetch all schema operations as a name → GraphQLOperation map."""
+    """Fetch all schema operations as a lowercase-name → GraphQLOperation map."""
     ops: dict[str, GraphQLOperation] = {}
     try:
         for op in schema_analyzer.get_all_queries():
-            ops[op.name] = op
+            ops[op.name.lower()] = op
         for op in schema_analyzer.get_all_mutations():
-            ops[op.name] = op
+            ops[op.name.lower()] = op
         logger.info("Fetched %d schema operations", len(ops))
     except Exception as e:
         logger.warning("Could not fetch schema (Saleor may be unreachable): %s", e)
@@ -129,7 +129,7 @@ def generate_targeted_tests(
 
     for i, op_risk in enumerate(high_risk_ops, 1):
         name = op_risk.operation_name
-        schema_op = schema_ops.get(name)
+        schema_op = schema_ops.get(name.lower())
 
         if not schema_op:
             logger.warning("[%d/%d] %s not found in schema — skipping", i, len(high_risk_ops), name)
@@ -295,6 +295,11 @@ def run_loop(
 # ─── CLI ─────────────────────────────────────────────────────────────────────
 
 app = typer.Typer(help="Autonomous QA agent: diff → risk → generate → run → report")
+
+
+@app.callback()
+def _main() -> None:
+    pass
 
 
 @app.command()

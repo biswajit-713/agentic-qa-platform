@@ -1,0 +1,13 @@
+{
+  "last_run_timestamp": "2026-05-09T06:56:37.763961+00:00",
+  "last_run_results": {
+    "generated_tests/api/test_checkout_complete_creates_order_or_requires_confirmation.py::test_checkout_complete_creates_order_or_requires_confirmation[checkout-id-1234]": "failed",
+    "generated_tests/api/test_checkout_create.py::test_checkout_create[default-channel-UHJvZHVjdFZhcmlhbnQ6MQ==-test@example.com]": "error",
+    "generated_tests/api/test_checkout_create_basic.py::test_checkout_create_basic": "failed",
+    "generated_tests/api/test_checkout_create_success.py::test_checkout_create_success": "failed",
+    "generated_tests/api/test_draft_order_bulk_delete.py::test_draft_order_bulk_delete": "passed",
+    "generated_tests/api/test_draft_order_create.py::test_draft_order_create": "passed",
+    "generated_tests/api/test_draft_order_update.py::test_draft_order_update[SPRINGFIELD-IL-62701]": "passed",
+    "generated_tests/api/test_stored_payment_method_request_delete.py::test_stored_payment_method_request_delete": "error"
+  }
+}

@@ -6,7 +6,9 @@ Produces executable test code that uses httpx to call Saleor's GraphQL endpoint.
 Includes detailed type information in prompts to help LLM understand complex input types.
 """
 
+import json
 import logging
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -71,7 +73,9 @@ def test_some_operation(param, auth_headers):
     assert len(errors) == 0, f'Errors: {errors}'
 ```
 
-Output test_code as a complete, ready-to-run pytest function following this exact pattern."""
+Output test_code as a complete, ready-to-run pytest function following this exact pattern.
+
+IMPORTANT: Respond with ONLY a raw JSON object — no markdown, no code fences, no explanation. The JSON must have exactly these keys: test_name, description, graphql_query, test_code."""
 
     def __init__(
         self,
@@ -106,30 +110,58 @@ Output test_code as a complete, ready-to-run pytest function following this exac
         """
         user_prompt = self._build_prompt(operation)
 
-        try:
-            response = self.client.beta.chat.completions.parse(
-                model="openai/gpt-oss-120b:free",
-                messages=[
-                    {"role": "system", "content": self.SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
-                response_format=TestCase,
-                temperature=0.2,
-            )
+        last_error: Exception = ValueError("no attempts made")
+        for attempt in range(1, 4):
+            try:
+                response = self.client.chat.completions.create(
+                    model="openai/gpt-oss-120b:free",
+                    messages=[
+                        {"role": "system", "content": self.SYSTEM_PROMPT},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=0.2,
+                )
 
-            raw_content = response.choices[0].message.content
-            logger.warning(f"Raw LLM response for {operation.name}:\n{raw_content}")
+                raw_content = response.choices[0].message.content or ""
+                test_case = self._parse_test_case(raw_content)
 
-            test_case = response.choices[0].message.parsed
-            if not test_case:
-                raise ValueError("LLM returned null test case")
+                try:
+                    compile(test_case.test_code, "<generated>", "exec")
+                except SyntaxError as se:
+                    raise ValueError(f"Generated code has syntax error: {se}") from se
 
-            logger.info(f"Generated test case: {test_case.test_name} for operation {operation.name}")
-            return test_case
+                logger.info("Generated test case: %s for operation %s", test_case.test_name, operation.name)
+                return test_case
 
-        except Exception as e:
-            logger.error(f"Failed to generate test for operation {operation.name}: {e}")
-            raise
+            except Exception as e:
+                last_error = e
+                logger.warning("Attempt %d/3 failed for %s: %s", attempt, operation.name, e)
+
+        logger.error("All 3 attempts failed for %s", operation.name)
+        raise last_error
+
+    def _parse_test_case(self, raw: str) -> TestCase:
+        """Extract and parse a TestCase JSON object from raw LLM output.
+
+        Handles markdown code fences (```json ... ``` or ``` ... ```) and
+        bare JSON blobs that may appear in the response.
+        """
+        if not raw.strip():
+            raise ValueError("LLM returned empty response")
+
+        # Strip markdown code fences
+        fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
+        candidate = fenced.group(1) if fenced else raw.strip()
+
+        # If still not starting with {, try to find the first { ... } block
+        if not candidate.startswith("{"):
+            brace_start = candidate.find("{")
+            if brace_start == -1:
+                raise ValueError("No JSON object found in LLM response")
+            candidate = candidate[brace_start:]
+
+        data = json.loads(candidate)
+        return TestCase(**data)
 
     def write_test(self, test_case: TestCase) -> Path:
         """Write generated test code to a file.

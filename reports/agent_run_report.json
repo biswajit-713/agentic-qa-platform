@@ -68,7 +68,7 @@
         "test_name": "generated_tests/api/test_stored_payment_method_request_delete.py::test_stored_payment_method_request_delete",
         "status": "error",
         "duration": 0.12456917762756348,
-        "error_message": "Skipped: Authenticated user has no stored payment methods \u2014 skipping deletion test",
+        "error_message": "Skipped: Authenticated user has no stored payment methods — skipping deletion test",
         "stdout": ""
       }
     ]
@@ -94,8 +94,5 @@
         "cart validation"
       ]
     }
-  ],
-  "coverage_before": null,
-  "coverage_after": null,
-  "rationale": "Both affected operations involve the checkout flow, which is a core purchase process; failures could block purchases or cause inventory issues. No direct payment or auth keywords, so it is not critical but still high impact."
+  ]
 }

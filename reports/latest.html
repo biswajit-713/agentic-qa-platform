@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QA Agent Report — 2026-05-09 01:34 UTC</title>
+  <title>QA Agent Report — 2026-05-09 06:56 UTC</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -120,7 +120,7 @@
   <div class="header-left">
     <h1>QA Agent Report</h1>
     <div class="subtitle">
-      2026-05-09T01:34:23.736579+00:00 &nbsp;|&nbsp; git range: <span class="mono">HEAD~3..HEAD</span>
+      2026-05-09T06:56:37.769043+00:00 &nbsp;|&nbsp; git range: <span class="mono">HEAD~8..HEAD</span>
     </div>
   </div>
   <div>
@@ -135,15 +135,15 @@
   <h2>Run Summary</h2>
   <div class="stat-grid">
     <div class="stat total">
-      <div class="value">4</div>
+      <div class="value">8</div>
       <div class="label">Total Tests</div>
     </div>
     <div class="stat passed">
-      <div class="value">2</div>
+      <div class="value">3</div>
       <div class="label">Passed</div>
     </div>
     <div class="stat failed">
-      <div class="value">0</div>
+      <div class="value">3</div>
       <div class="label">Failed</div>
     </div>
     <div class="stat errors">
@@ -151,11 +151,11 @@
       <div class="label">Errors</div>
     </div>
     <div class="stat duration">
-      <div class="value">0.76s</div>
+      <div class="value">1.77s</div>
       <div class="label">Duration</div>
     </div>
     <div class="stat">
-      <div class="value" style="color:#f472b6;">0</div>
+      <div class="value" style="color:#f472b6;">2</div>
       <div class="label">New Tests</div>
     </div>
     <div class="stat">
@@ -173,7 +173,7 @@
   <p style="margin-bottom:16px;">
     Overall risk:
     <span class="badge" style="background:#e67e22;">HIGH</span>
-    &nbsp; Recommended test count: <strong>5</strong>
+    &nbsp; Recommended test count: <strong>10</strong>
   </p>
   
   <table>
@@ -194,13 +194,13 @@
             HIGH
           </span>
         </td>
-        <td style="color:#94a3b8; font-size:0.83rem;">Completes the purchase flow, critical for revenue.</td>
+        <td style="color:#94a3b8; font-size:0.83rem;">Completes the purchase process, directly affecting order finalization.</td>
         <td>
           <div class="chip-list">
             
             <span class="chip">order finalization</span>
             
-            <span class="chip">payment processing</span>
+            <span class="chip">inventory deduction</span>
             
           </div>
         </td>
@@ -213,13 +213,13 @@
             HIGH
           </span>
         </td>
-        <td style="color:#94a3b8; font-size:0.83rem;">Creates a new checkout session, essential for initiating purchases.</td>
+        <td style="color:#94a3b8; font-size:0.83rem;">Creates a new checkout session, essential for starting a purchase.</td>
         <td>
           <div class="chip-list">
             
-            <span class="chip">cart creation</span>
+            <span class="chip">checkout initialization</span>
             
-            <span class="chip">inventory validation</span>
+            <span class="chip">cart validation</span>
             
           </div>
         </td>
@@ -246,6 +246,50 @@
     <tbody>
       
       <tr>
+        <td class="mono" style="word-break:break-all; max-width:460px;">generated_tests/api/test_checkout_complete_creates_order_or_requires_confirmation.py::test_checkout_complete_creates_order_or_requires_confirmation[checkout-id-1234]</td>
+        <td>
+          <span class="tag" style="background:#1e3a5f; color:#7dd3fc;">api</span>
+        </td>
+        <td>
+          <span class="tag" style="background:#c0392b;">failed</span>
+        </td>
+        <td class="mono" style="color:#64748b;">0.183s</td>
+      </tr>
+      
+      <tr>
+        <td class="mono" style="word-break:break-all; max-width:460px;">generated_tests/api/test_checkout_create.py::test_checkout_create[default-channel-UHJvZHVjdFZhcmlhbnQ6MQ==-test@example.com]</td>
+        <td>
+          <span class="tag" style="background:#1e3a5f; color:#7dd3fc;">api</span>
+        </td>
+        <td>
+          <span class="tag" style="background:#e67e22;">error</span>
+        </td>
+        <td class="mono" style="color:#64748b;">0.121s</td>
+      </tr>
+      
+      <tr>
+        <td class="mono" style="word-break:break-all; max-width:460px;">generated_tests/api/test_checkout_create_basic.py::test_checkout_create_basic</td>
+        <td>
+          <span class="tag" style="background:#1e3a5f; color:#7dd3fc;">api</span>
+        </td>
+        <td>
+          <span class="tag" style="background:#c0392b;">failed</span>
+        </td>
+        <td class="mono" style="color:#64748b;">0.124s</td>
+      </tr>
+      
+      <tr>
+        <td class="mono" style="word-break:break-all; max-width:460px;">generated_tests/api/test_checkout_create_success.py::test_checkout_create_success</td>
+        <td>
+          <span class="tag" style="background:#1e3a5f; color:#7dd3fc;">api</span>
+        </td>
+        <td>
+          <span class="tag" style="background:#c0392b;">failed</span>
+        </td>
+        <td class="mono" style="color:#64748b;">0.133s</td>
+      </tr>
+      
+      <tr>
         <td class="mono" style="word-break:break-all; max-width:460px;">generated_tests/api/test_draft_order_bulk_delete.py::test_draft_order_bulk_delete</td>
         <td>
           <span class="tag" style="background:#1e3a5f; color:#7dd3fc;">api</span>
@@ -253,18 +297,18 @@
         <td>
           <span class="tag" style="background:#27ae60;">passed</span>
         </td>
-        <td class="mono" style="color:#64748b;">0.234s</td>
+        <td class="mono" style="color:#64748b;">0.305s</td>
       </tr>
       
       <tr>
-        <td class="mono" style="word-break:break-all; max-width:460px;">generated_tests/api/test_draft_order_create.py::test_draft_order_create[VGVzdDp2YXJpYW50OjE=-VGVzdDpjaGFubmVsOjE=]</td>
+        <td class="mono" style="word-break:break-all; max-width:460px;">generated_tests/api/test_draft_order_create.py::test_draft_order_create</td>
         <td>
           <span class="tag" style="background:#1e3a5f; color:#7dd3fc;">api</span>
         </td>
         <td>
-          <span class="tag" style="background:#e67e22;">error</span>
+          <span class="tag" style="background:#27ae60;">passed</span>
         </td>
-        <td class="mono" style="color:#64748b;">0.113s</td>
+        <td class="mono" style="color:#64748b;">0.201s</td>
       </tr>
       
       <tr>
@@ -275,7 +319,7 @@
         <td>
           <span class="tag" style="background:#27ae60;">passed</span>
         </td>
-        <td class="mono" style="color:#64748b;">0.189s</td>
+        <td class="mono" style="color:#64748b;">0.216s</td>
       </tr>
       
       <tr>
@@ -286,7 +330,7 @@
         <td>
           <span class="tag" style="background:#e67e22;">error</span>
         </td>
-        <td class="mono" style="color:#64748b;">0.116s</td>
+        <td class="mono" style="color:#64748b;">0.125s</td>
       </tr>
       
     </tbody>
@@ -306,14 +350,25 @@
 <div class="section">
   <h2>Agent Reasoning</h2>
   
-  <div class="reasoning-block">The change set introduces new checkout mutations that directly affect the purchase flow, potentially blocking users from completing orders or causing inventory issues.</div>
+  <div class="reasoning-block">Both affected operations involve the checkout flow, which is a core purchase process; failures could block purchases or cause inventory issues. No direct payment or auth keywords, so it is not critical but still high impact.</div>
   
+  
+  <p style="margin-top:16px; font-size:0.875rem; color:#64748b;">
+    Tests generated this run:
+  </p>
+  <div class="chip-list" style="margin-top:8px;">
+    
+    <span class="chip mono">test_checkout_complete_creates_order_without_confirmation</span>
+    
+    <span class="chip mono">test_checkout_create_success</span>
+    
+  </div>
   
   
 </div>
 
 <div class="footer">
-  Agentic QA Platform &nbsp;·&nbsp; Generated 2026-05-09T01:34:23.736579+00:00
+  Agentic QA Platform &nbsp;·&nbsp; Generated 2026-05-09T06:56:37.769043+00:00
 </div>
 
 </body>

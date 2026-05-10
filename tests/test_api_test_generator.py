@@ -4,6 +4,7 @@ tests/test_api_test_generator.py
 Unit tests for ApiTestGenerator. Mocks OpenRouter API calls.
 """
 
+import json
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
@@ -113,9 +114,9 @@ def test_generate_returns_test_case(mock_openai_class, mock_get_settings, query_
     # Mock the API response
     mock_response = Mock()
     mock_message = Mock()
-    mock_message.parsed = sample_test_case
+    mock_message.content = json.dumps(sample_test_case.model_dump())
     mock_response.choices = [Mock(message=mock_message)]
-    mock_client.beta.chat.completions.parse.return_value = mock_response
+    mock_client.chat.completions.create.return_value = mock_response
 
     generator = ApiTestGenerator()
     result = generator.generate(query_operation)
@@ -195,16 +196,16 @@ def test_generate_with_mutation_operation(mock_openai_class, mock_get_settings, 
     # Mock the API response
     mock_response = Mock()
     mock_message = Mock()
-    mock_message.parsed = sample_test_case
+    mock_message.content = json.dumps(sample_test_case.model_dump())
     mock_response.choices = [Mock(message=mock_message)]
-    mock_client.beta.chat.completions.parse.return_value = mock_response
+    mock_client.chat.completions.create.return_value = mock_response
 
     generator = ApiTestGenerator()
     result = generator.generate(mutation_operation)
 
     assert isinstance(result, TestCase)
     # Verify the prompt was built with mutation-specific language
-    call_args = mock_client.beta.chat.completions.parse.call_args
+    call_args = mock_client.chat.completions.create.call_args
     prompt_content = call_args[1]["messages"][1]["content"]
     assert "mutation" in prompt_content
 
@@ -221,7 +222,7 @@ def test_generate_handles_api_error(mock_openai_class, mock_get_settings, query_
 
     mock_client = MagicMock()
     mock_openai_class.return_value = mock_client
-    mock_client.beta.chat.completions.parse.side_effect = Exception("API request failed")
+    mock_client.chat.completions.create.side_effect = Exception("API request failed")
 
     generator = ApiTestGenerator()
 
@@ -244,9 +245,9 @@ def test_generated_code_imports_execute_graphql(mock_openai_class, mock_get_sett
 
     mock_response = Mock()
     mock_message = Mock()
-    mock_message.parsed = sample_test_case
+    mock_message.content = json.dumps(sample_test_case.model_dump())
     mock_response.choices = [Mock(message=mock_message)]
-    mock_client.beta.chat.completions.parse.return_value = mock_response
+    mock_client.chat.completions.create.return_value = mock_response
 
     generator = ApiTestGenerator()
     result = generator.generate(query_operation)

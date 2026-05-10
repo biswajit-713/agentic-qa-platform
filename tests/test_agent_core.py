@@ -270,7 +270,7 @@ def test_quality_gate_passes_when_low_op_fails():
 
 
 def test_generate_targeted_tests_only_high_critical(high_risk_assessment, schema_op):
-    schema_ops = {"checkoutComplete": schema_op}
+    schema_ops = {"checkoutcomplete": schema_op}
     mock_generator = MagicMock()
     mock_tc = MagicMock()
     mock_tc.test_name = "test_checkout_complete"
@@ -307,7 +307,7 @@ def test_generate_targeted_tests_no_high_risk_ops(low_risk_assessment):
 
 
 def test_generate_targeted_tests_handles_generator_exception(high_risk_assessment, schema_op):
-    schema_ops = {"checkoutComplete": schema_op}
+    schema_ops = {"checkoutcomplete": schema_op}
     mock_generator = MagicMock()
     mock_generator.generate.side_effect = ValueError("LLM timeout")
 
@@ -331,7 +331,7 @@ def test_fetch_schema_ops_returns_combined_map():
     ops = fetch_schema_ops(mock_analyzer)
 
     assert "products" in ops
-    assert "productCreate" in ops
+    assert "productcreate" in ops
 
 
 def test_fetch_schema_ops_returns_empty_on_exception():

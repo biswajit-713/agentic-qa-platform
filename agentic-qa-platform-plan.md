@@ -636,17 +636,19 @@ The JSON schema should be documented with field descriptions for README referenc
 
 ---
 
-#### Day 15 — Failure Classifier
+#### Day 15 — Failure Classifier ✅ COMPLETED (2026-05-10)
 
 **Outcome**: When tests fail, the agent classifies the root cause automatically.
 
 **Tasks**:
-- [ ] Build `src/healers/failure_classifier.py`
-- [ ] Input: failed test + error message + test code + recent diff
-- [ ] OpenRouter classifies: APP_BUG | TEST_STALE | ENVIRONMENT | FLAKY | UNKNOWN
-- [ ] APP_BUG and UNKNOWN are escalated (not auto-healed)
-- [ ] TEST_STALE and FLAKY proceed to healer
-- [ ] Commit: "feat: AI-powered failure classifier"
+- [x] Build `src/healers/failure_classifier.py`
+- [x] Input: failed test + error message + test code + recent diff
+- [x] OpenRouter classifies: APP_BUG | TEST_STALE | ENVIRONMENT | FLAKY | UNKNOWN
+- [x] APP_BUG and UNKNOWN are escalated (not auto-healed)
+- [x] TEST_STALE and FLAKY proceed to healer
+- [x] Commit: "feat: AI-powered failure classifier"
+
+**Completed**: FailedTest and FailureClassification Pydantic models. FailureClassifier.classify() sends full test context (code, error, stack trace, diff, last-passing timestamp) to OpenRouter. APP_BUG and UNKNOWN always escalate; confidence < 0.7 escalates regardless of category. should_auto_heal() gates the healer pipeline — only TEST_STALE and FLAKY with high confidence proceed. 26 new tests, 218 total passing.
 
 **Claude Code prompt for Day 15**:
 ```

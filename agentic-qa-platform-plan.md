@@ -675,17 +675,19 @@ Low confidence (<0.7) should always escalate to human regardless of category.
 
 ---
 
-#### Day 16 — Self-Healing Engine
+#### Day 16 — Self-Healing Engine ✅ COMPLETED (2026-05-12)
 
 **Outcome**: Agent auto-patches TEST_STALE failures, re-runs, confirms green. This is the Level 3 moment.
 
 **Tasks**:
-- [ ] Build `src/healers/self_healer.py`
-- [ ] For TEST_STALE: OpenRouter generates a patched version of the test
-- [ ] Patching strategies: update GraphQL query fields, update assertions, update variables
-- [ ] Apply patch, re-run the test, verify it passes before committing the fix
-- [ ] If patched test still fails: escalate, do not commit
-- [ ] Commit: "feat: self-healing engine for stale tests"
+- [x] Build `src/healers/self_healer.py`
+- [x] For TEST_STALE: OpenRouter generates a patched version of the test
+- [x] Patching strategies: update GraphQL query fields, update assertions, update variables
+- [x] Apply patch, re-run the test, verify it passes before committing the fix
+- [x] If patched test still fails: escalate, do not commit
+- [x] Commit: "feat: self-healing engine for stale tests"
+
+**Completed**: SelfHealer.heal() calls OpenRouter, writes patch to temp file, runs via PytestRunner, commits to disk only on green. HealEvent (HEALED/FAILED) appended to heals.jsonl. Rejects UI tests (no DOM signal). dry_run flag shows patch without writing. _strip_markdown_fences handles LLM code-fence wrapping. 40 new tests, 258 total passing.
 
 **Claude Code prompt for Day 16**:
 ```
@@ -711,16 +713,18 @@ Implement a --dry-run flag that shows what would be patched without applying.
 
 ---
 
-#### Day 17 — Healing Audit Trail + Human Escalation
+#### Day 17 — Healing Audit Trail + Human Escalation ✅ COMPLETED (2026-05-12)
 
 **Outcome**: Every auto-fix is logged and auditable. Low-confidence fixes are held for review.
 
 **Tasks**:
-- [ ] Build `src/healers/escalation_manager.py`
-- [ ] Maintains a `needs_review.json` queue of tests that need human attention
-- [ ] CLI command: `python -m agent review` — shows pending escalations with context
-- [ ] Mark as resolved: `python -m agent resolve --test <name> --action accept|reject`
-- [ ] Commit: "feat: human escalation manager for healing audit"
+- [x] Build `src/healers/escalation_manager.py`
+- [x] Maintains a `needs_review.json` queue of tests that need human attention
+- [x] CLI command: `python -m agent review` — shows pending escalations with context
+- [x] Mark as resolved: `python -m agent resolve --test <name> --action accept|reject`
+- [x] Commit: "feat: human escalation manager for healing audit"
+
+**Completed**: EscalationManager.push() is idempotent (replaces pending entry for same test, preserves resolved history). list_pending()/list_all()/pending_count() query the queue. resolve() raises KeyError on unknown or already-resolved tests. `python -m src.agent review` and `python -m src.agent resolve` CLI commands added to agent core (typer). Handles corrupt/missing queue file gracefully. 24 new tests, 282 total passing.
 
 ---
 

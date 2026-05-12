@@ -348,5 +348,83 @@ def run(
         raise typer.Exit(1)
 
 
+@app.command()
+def review(
+    queue_file: str = typer.Option("needs_review.json", "--queue", help="Path to escalation queue"),
+    show_all: bool = typer.Option(False, "--all", help="Show resolved entries too"),
+) -> None:
+    """Show pending test escalations that need human attention."""
+    from src.healers.escalation_manager import EscalationManager
+
+    manager = EscalationManager(queue_file=Path(queue_file))
+    entries = manager.list_all() if show_all else manager.list_pending()
+
+    if not entries:
+        label = "escalations" if show_all else "pending escalations"
+        print(f"No {label} found in {queue_file}")
+        return
+
+    label = "escalations (all)" if show_all else "pending escalations"
+    print()
+    print("=" * 70)
+    print(f"ESCALATION QUEUE — {label.upper()}")
+    print("=" * 70)
+
+    for i, entry in enumerate(entries, 1):
+        status_marker = "[RESOLVED]" if entry.status == "resolved" else "[PENDING] "
+        print(f"\n{i}. {status_marker} {entry.test_name}")
+        print(f"   Category:   {entry.category}  (confidence={entry.confidence:.0%})")
+        print(f"   Escalated:  {entry.escalated_at}")
+        if entry.original_error:
+            print(f"   Error:      {entry.original_error}")
+        if entry.reasoning:
+            print(f"   Reasoning:  {entry.reasoning}")
+        if entry.suggested_fix_hint:
+            print(f"   Hint:       {entry.suggested_fix_hint}")
+        if entry.status == "resolved":
+            print(f"   Resolution: {entry.resolution} at {entry.resolved_at}")
+            if entry.resolution_note:
+                print(f"   Note:       {entry.resolution_note}")
+
+    print()
+    print(f"Total: {len(entries)}")
+    if not show_all:
+        print("Tip: use `resolve --test <name> --action accept|reject` to close an entry.")
+    print("=" * 70)
+
+
+@app.command()
+def resolve(
+    test: str = typer.Option(..., "--test", help="Pytest node ID of the test to resolve"),
+    action: str = typer.Option(..., "--action", help="Resolution action: accept or reject"),
+    note: str = typer.Option("", "--note", help="Optional free-text note"),
+    queue_file: str = typer.Option("needs_review.json", "--queue", help="Path to escalation queue"),
+) -> None:
+    """Resolve a pending escalation by accepting or rejecting it."""
+    from src.healers.escalation_manager import EscalationManager, ResolutionAction
+
+    if action not in ("accept", "reject"):
+        print(f"Error: --action must be 'accept' or 'reject', got {action!r}")
+        raise typer.Exit(1)
+
+    manager = EscalationManager(queue_file=Path(queue_file))
+    try:
+        entry = manager.resolve(test, action=action, note=note)  # type: ignore[arg-type]
+    except KeyError as e:
+        print(f"Error: {e}")
+        raise typer.Exit(1) from e
+
+    print()
+    print("=" * 70)
+    print("ESCALATION RESOLVED")
+    print("=" * 70)
+    print(f"Test:       {entry.test_name}")
+    print(f"Action:     {entry.resolution}")
+    print(f"Resolved:   {entry.resolved_at}")
+    if entry.resolution_note:
+        print(f"Note:       {entry.resolution_note}")
+    print("=" * 70)
+
+
 if __name__ == "__main__":
     app()

@@ -921,15 +921,17 @@ Then add a security gate rule to quality_gate.py:
 
 ---
 
-#### Day 25 — README + Architecture Documentation
+#### Day 25 — README + Architecture Documentation ✅ COMPLETED (2026-05-13)
 
 **Outcome**: README is portfolio-quality. Someone reading it for 2 minutes understands the value.
 
 **Tasks**:
-- [ ] Write final `README.md` (structure below)
-- [ ] Write `docs/architecture.md` with full architecture diagram + module descriptions
-- [ ] Write 2-3 ADRs in `docs/adr/`: why OpenRouter/gpt-oss-120b over other options, why pytest over unittest, why Saleor
-- [ ] Commit: "docs: production-quality README and architecture docs"
+- [x] Write final `README.md` (structure below)
+- [x] Write `docs/architecture.md` with full architecture diagram + module descriptions
+- [x] Write 2-3 ADRs in `docs/adr/`: why OpenRouter/gpt-oss-120b over other options, why pytest over unittest, why Saleor
+- [x] Commit: "docs: production-quality README and architecture docs"
+
+**Completed**: README rewritten with problem statement, agentic levels table, full ASCII architecture diagram, 13-row modules table, quick-start commands, Level 2 + Level 3 demo snippets, capabilities checklist (built vs. planned), edge-case table, per-module test breakdown (282 total), stack table. docs/architecture.md extended with full Week 3 section: flow diagram, module responsibilities, data models (FailedTest/FailureClassification/HealEvent/EscalationEntry), escalation decision logic pseudocode, CLI commands, governance model table, test coverage. docs/adr/ created with ADR-001 (OpenRouter model selection), ADR-002 (pytest over unittest), ADR-003 (Saleor as SUT) — each with context, options considered, decision, and consequences.
 
 **README structure**:
 ```markdown

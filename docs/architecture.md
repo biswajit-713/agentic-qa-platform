@@ -296,7 +296,160 @@ This is **Level 2 Autonomy**: the agent makes decisions (what to test, how much 
 
 This is **Level 1 Autonomy**: LLM test generation on demand. Human still triggers it and reviews results. No autonomous decision-making yet.
 
-**Next Steps (Weeks 2-4)**:
-- Week 2: Level 2 — autonomous decision-making (analyze diffs, risk score, prioritize)
-- Week 3: Add self-healing (auto-patch stale tests with human escalation)
-- Week 4: Portfolio polish + extensibility
+---
+
+## Week 3: Self-Healing + Audit Trail (Level 3 on API layer)
+
+### Overview
+
+Week 3 adds autonomous failure triage and repair. When a test fails the agent classifies the root cause, decides whether to auto-heal or escalate to a human, applies the patch only if it passes verification, and logs every action for governance.
+
+```
+ failing test (test_name, test_code, error_message, stack_trace, recent_diff)
+        │
+        ▼
+ FailureClassifier.classify()  ──LLM──→ FailureClassification
+        │                                 category: APP_BUG | TEST_STALE |
+        │                                           FLAKY | ENVIRONMENT | UNKNOWN
+        │                                 confidence: 0.0–1.0
+        │                                 should_escalate: bool
+        │
+        ├─── should_escalate == True ──→ EscalationManager.push()
+        │                                 needs_review.json (pending queue)
+        │
+        └─── should_auto_heal() == True (TEST_STALE | FLAKY, confidence ≥ 0.7)
+                    │
+                    ▼
+             SelfHealer.heal()
+                    │
+                    ├── 1. LLM generates full patched test code
+                    ├── 2. Write to temp file
+                    ├── 3. PytestRunner runs temp file
+                    │
+                    ├── passes ──→ overwrite original file
+                    │              HealEvent(outcome=HEALED) → heals.jsonl
+                    │
+                    └── still fails ──→ HealEvent(outcome=FAILED) → heals.jsonl
+                                        EscalationManager.push() (fallback)
+```
+
+### Module Responsibilities
+
+| Module | File | Responsibility | Key Output |
+|--------|------|----------------|------------|
+| **FailureClassifier** | `src/healers/failure_classifier.py` | LLM root-cause classification of failed tests | `FailureClassification` |
+| **SelfHealer** | `src/healers/self_healer.py` | Generate + verify patch for TEST_STALE failures | `HealEvent` → `heals.jsonl` |
+| **EscalationManager** | `src/healers/escalation_manager.py` | Queue failures needing human review | `EscalationEntry` → `needs_review.json` |
+| **UITestGenerator** | `src/generators/ui_test_generator.py` | Playwright async tests for storefront flows | `UITestCase` → `generated_tests/ui/` |
+| **IntegrationTestGenerator** | `src/generators/integration_test_generator.py` | Cross-layer API + UI tests | `IntegrationTestCase` → `generated_tests/integration/` |
+| **ReportGenerator** | `src/reporters/report_generator.py` | JSON + HTML quality reports from RunReport | `reports/latest.json`, `reports/latest.html` |
+
+### Data Models
+
+**`FailedTest`** — input to the classifier
+```python
+test_name: str                  # pytest node ID, e.g. "tests/test_foo.py::test_bar"
+test_code: str                  # full source of the test function
+error_message: str              # one-line error or assertion message
+stack_trace: str                # full traceback
+recent_diff: str                # git diff that preceded the failure
+last_passing_run: Optional[datetime]
+```
+
+**`FailureClassification`** — output of the classifier
+```python
+category: Literal["APP_BUG", "TEST_STALE", "ENVIRONMENT", "FLAKY", "UNKNOWN"]
+confidence: float               # 0.0–1.0
+reasoning: str                  # step-by-step explanation
+suggested_fix_hint: str         # concrete hint for fixer
+should_escalate: bool           # True when category in {APP_BUG, UNKNOWN}
+                                # OR confidence < 0.7
+```
+
+**`HealEvent`** — audit record written to heals.jsonl
+```python
+timestamp: str
+test_name: str
+original_error: str
+fix_applied: str                # full patched test code that was attempted
+confidence: float
+outcome: Literal["HEALED", "FAILED"]
+failure_reason: Optional[str]   # set only when outcome=FAILED
+```
+
+**`EscalationEntry`** — one item in needs_review.json
+```python
+test_name: str
+category: str
+confidence: float
+reasoning: str
+suggested_fix_hint: str
+original_error: str
+escalated_at: str               # ISO-8601 UTC
+status: Literal["pending", "resolved"]
+resolved_at: Optional[str]
+resolution: Optional[Literal["accept", "reject"]]
+resolution_note: str
+```
+
+### Escalation Decision Logic
+
+```
+should_auto_heal(classification) → bool
+
+  True  when:  category in {TEST_STALE, FLAKY}
+               AND confidence ≥ 0.7
+               AND not a UI test (no DOM signal for verification)
+
+  False when:  category in {APP_BUG, UNKNOWN}  ← always escalate
+               OR confidence < 0.7             ← low confidence → escalate
+               OR it's a UI test               ← SelfHealer rejects these
+```
+
+### CLI Commands (Week 3)
+
+```bash
+# List all pending escalations
+uv run python -m src.agent review
+
+# List all (including resolved)
+uv run python -m src.agent review --all
+
+# Resolve a pending escalation
+uv run python -m src.agent resolve \
+  --test "generated_tests/api/test_checkout.py::test_checkout_create" \
+  --action accept \
+  --note "Schema rename was intentional, patch is correct"
+
+# Dry-run self-healing (show patch without writing)
+# (called programmatically via SelfHealer.heal(dry_run=True))
+```
+
+### Governance Model
+
+Two audit files are always written:
+
+| File | Written by | Content |
+|---|---|---|
+| `heals.jsonl` | `SelfHealer` | One JSON line per healing attempt (HEALED or FAILED) |
+| `needs_review.json` | `EscalationManager` | Array of EscalationEntry objects; status updated in-place on resolve |
+
+These files are the governance layer: every autonomous change to a test file has a corresponding `heals.jsonl` entry, and every case where the agent chose _not_ to auto-heal has a corresponding `needs_review.json` entry.
+
+### Test Coverage (Week 3)
+
+```
+test_failure_classifier.py     ✅ 26 tests  (LLM mock, classification logic, escalation rules)
+test_self_healer.py            ✅ 40 tests  (patch gen, temp-file verify, heals.jsonl append)
+test_escalation_manager.py     ✅ 24 tests  (push idempotency, list/resolve, disk persistence)
+──────────────────────────────────────────
+Week 3 additions: 90 tests
+Running total: 282 tests, all passing
+```
+
+### Week 3 — Level 3 Autonomy (API Layer)
+
+**What the human does**: Review the `needs_review.json` queue via `python -m src.agent review`; accept or reject each escalation
+**What the system does**: Classify failures → auto-patch TEST_STALE → verify patch → commit or escalate → log every decision
+
+This is **Level 3 Autonomy** on the API layer: the system closes the fail→fix loop without human input when confidence is high. Humans are only brought in for genuine application bugs, unknown failures, and low-confidence classifications.
